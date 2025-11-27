@@ -31,7 +31,7 @@ release:
 
 ## Hot Reload (Requires cargo-watch installation) For the development phase
 dev:
-	cargo watch -w crates -w apps -x 'run'
+	cargo watch -w app -x 'run'
 
 ## Clean build artifacts
 clean:
