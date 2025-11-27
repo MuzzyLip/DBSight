@@ -1,0 +1,5 @@
+[workspace]
+members = ["app/"]
+
+[workspace.dependencies]
+anyhow = "1.0.0"

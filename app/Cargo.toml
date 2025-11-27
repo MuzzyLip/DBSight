@@ -1,0 +1,12 @@
+[package]
+name = "DBSight"
+version = "0.1.0"
+authors = ["MuzzyLip <muzzylip@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+# GPUI
+gpui = "0.2.2"
+gpui-component = "0.4.0"
+# Common Crates
+anyhow = { workspace = true }
