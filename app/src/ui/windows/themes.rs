@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-
 use gpui::{Action, App, SharedString};
 use gpui_component::{Theme, ThemeMode, ThemeRegistry};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct AppState {
@@ -40,4 +39,4 @@ pub fn init_themes(cx: &mut App) {
 
 #[derive(Action, Clone, PartialEq)]
 #[action(namespace = themes, no_json)]
-pub(crate) struct SwitchThemeMode(pub(crate) ThemeMode);
+pub struct SwitchThemeMode(pub(crate) ThemeMode);

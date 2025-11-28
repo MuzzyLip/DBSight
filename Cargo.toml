@@ -1,5 +1,5 @@
 [workspace]
-members = ["app/"]
+members = ["app/", "core/"]
 
 [workspace.dependencies]
 anyhow = "1.0"

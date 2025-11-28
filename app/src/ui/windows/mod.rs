@@ -9,7 +9,7 @@ mod window_option;
 pub use assets::Assets;
 pub use icons::AppIconName;
 pub use root::RootApp;
-pub use themes::init_themes;
+pub use themes::{init_themes, SwitchThemeMode};
 pub use window_option::DefaultWindowOptions;
 
 #[derive(Clone, Copy, Debug)]
