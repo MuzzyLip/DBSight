@@ -1,8 +1,9 @@
 [package]
-name = "db-sight-core"
+name = "db-sight-assets"
 version = "0.1.0"
 authors = ["MuzzyLip <muzzylip@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-uuid = "1.18.1"
+gpui = { workspace = true }
+gpui-component = { workspace = true }

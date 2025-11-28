@@ -1,6 +1,10 @@
 [workspace]
-members = ["app/", "core/"]
+members = ["app/", "core/", "assets/"]
+resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0"
 serde = "1.0"
+# GPUI
+gpui = "0.2.2"
+gpui-component = "0.4.0"

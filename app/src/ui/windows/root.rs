@@ -1,7 +1,7 @@
 use gpui::{
     div, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window,
 };
-use gpui_component::StyledExt;
+use gpui_component::{Root, StyledExt};
 
 use crate::ui::{
     components::{SideBar, TopBar},
@@ -31,15 +31,21 @@ impl RootApp {
 }
 
 impl Render for RootApp {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().v_flex().size_full().child(self.topbar.clone()).child(
-            div().h_flex().flex_1().child(self.sidebar.clone()).child(
-                div()
-                    .size_full()
-                    .justify_center()
-                    .items_center()
-                    .child("Content"),
-            ),
-        )
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let dialog_layer = Root::render_dialog_layer(window, cx);
+        div()
+            .v_flex()
+            .size_full()
+            .child(self.topbar.clone())
+            .child(
+                div().h_flex().flex_1().child(self.sidebar.clone()).child(
+                    div()
+                        .size_full()
+                        .justify_center()
+                        .items_center()
+                        .child("Content"),
+                ),
+            )
+            .children(dialog_layer)
     }
 }

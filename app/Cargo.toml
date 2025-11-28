@@ -1,13 +1,13 @@
 [package]
-name = "DBSight"
+name = "db-sight"
 version = "0.1.0"
 authors = ["MuzzyLip <muzzylip@gmail.com>"]
 edition = "2021"
 
 [dependencies]
 # GPUI
-gpui = "0.2.2"
-gpui-component = "0.4.0"
+gpui = { workspace = true }
+gpui-component = { workspace = true }
 # Common Crates
 anyhow = { workspace = true }
 # GPUI Import Assets
@@ -17,3 +17,5 @@ serde = { workspace = true }
 # Locale
 locale_config = "0.3"
 toml = "0.9.8"
+# Local Crate
+db-sight-assets = { path = "../assets" }

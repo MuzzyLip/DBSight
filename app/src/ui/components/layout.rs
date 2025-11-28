@@ -1,3 +1,4 @@
+use db_sight_assets::icons::AppIconName;
 use gpui::{
     div, prelude::FluentBuilder, px, Action, App, AppContext, Context, Entity, IntoElement,
     ParentElement, Render, Styled, Window,
@@ -9,13 +10,10 @@ use gpui_component::{
         SidebarToggleButton,
     },
     tab::{Tab, TabBar},
-    Icon, Side, Sizable, StyledExt, ThemeMode, TitleBar,
+    Icon, Side, Sizable, StyledExt, ThemeMode, TitleBar, WindowExt,
 };
 
-use crate::{
-    core::I18n,
-    ui::windows::{AppIconName, SwitchThemeMode},
-};
+use crate::{core::I18n, ui::windows::SwitchThemeMode};
 
 pub struct TopBar {
     sidebar: Entity<SideBar>,
@@ -72,12 +70,19 @@ impl Render for TopBar {
             .child(div().flex_1())
             .child(
                 Button::new("db-connection")
+                    .cursor_pointer()
                     .when(!is_mac, |this| this.mr_2())
                     .ml_2()
                     .gap_1p5()
                     .small()
                     .label(i18n.t("new-connection"))
-                    .icon(Icon::new(AppIconName::IconDatabase)),
+                    .icon(Icon::new(AppIconName::IconDatabase))
+                    .on_click(|_, window, cx| {
+                        window.open_dialog(cx, |dialog, _, cx| {
+                            let i18n = cx.global::<I18n>();
+                            dialog.title(i18n.t("connection.choose-database"))
+                        });
+                    }),
             )
     }
 }
@@ -132,6 +137,7 @@ impl Render for SideBar {
                     .w_full()
                     .child(
                         TabBar::new("theme-tab")
+                            .cursor_pointer()
                             .segmented()
                             .w_full()
                             .h_flex()
