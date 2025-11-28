@@ -1,0 +1,45 @@
+use gpui::{
+    div, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window,
+};
+use gpui_component::StyledExt;
+
+use crate::ui::{
+    components::{SideBar, TopBar},
+    pages::PageRoutes,
+};
+
+pub struct RootApp {
+    sidebar: Entity<SideBar>,
+    topbar: Entity<TopBar>,
+    current_page: PageRoutes,
+}
+
+impl RootApp {
+    fn new(window: &mut Window, cx: &mut App) -> Self {
+        let sidebar = SideBar::view(window, cx);
+        let topbar = TopBar::view(sidebar.clone(), window, cx);
+        Self {
+            sidebar,
+            topbar,
+            current_page: PageRoutes::NoDatabase,
+        }
+    }
+
+    pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self::new(window, cx))
+    }
+}
+
+impl Render for RootApp {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().v_flex().size_full().child(self.topbar.clone()).child(
+            div().h_flex().flex_1().child(self.sidebar.clone()).child(
+                div()
+                    .size_full()
+                    .justify_center()
+                    .items_center()
+                    .child("Content"),
+            ),
+        )
+    }
+}

@@ -1,9 +1,15 @@
 use gpui::{px, size, Pixels, Size};
 
-mod layout;
+mod assets;
+mod icons;
+mod root;
+mod themes;
 mod window_option;
 
-pub use layout::Layout;
+pub use assets::Assets;
+pub use icons::AppIconName;
+pub use root::RootApp;
+pub use themes::init_themes;
 pub use window_option::DefaultWindowOptions;
 
 #[derive(Clone, Copy, Debug)]

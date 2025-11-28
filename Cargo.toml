@@ -2,4 +2,5 @@
 members = ["app/"]
 
 [workspace.dependencies]
-anyhow = "1.0.0"
+anyhow = "1.0"
+serde = "1.0"

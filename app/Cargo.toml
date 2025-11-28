@@ -10,3 +10,7 @@ gpui = "0.2.2"
 gpui-component = "0.4.0"
 # Common Crates
 anyhow = { workspace = true }
+# GPUI Import Assets
+rust-embed = { version = "8.7.2", features = ["interpolate-folder-path"] }
+# Serialize/Deserialize
+serde = { workspace = true }
