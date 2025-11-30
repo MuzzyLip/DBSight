@@ -42,12 +42,14 @@ impl Render for TopBar {
         TitleBar::new()
             .child(
                 div()
-                    .w(if self.collapsed { px(100.) } else { px(245.) })
+                    .when(!is_mac, |this| {
+                        this.w(if self.collapsed { px(100.) } else { px(245.) })
+                    })
                     .h_full()
                     .h_flex()
                     .justify_between()
                     .items_center()
-                    .child("I'M LOGO")
+                    .when(!is_mac, |this| this.child("I'M LOGO"))
                     .child(
                         div().cursor_pointer().child(
                             SidebarToggleButton::left()
@@ -71,7 +73,7 @@ impl Render for TopBar {
             .child(
                 Button::new("db-connection")
                     .cursor_pointer()
-                    .when(!is_mac, |this| this.mr_2())
+                    .mr_2()
                     .ml_2()
                     .gap_1p5()
                     .small()
@@ -84,6 +86,7 @@ impl Render for TopBar {
                         });
                     }),
             )
+            .when(is_mac, |this| this.child(div().mr_4().child("I'M LOGO")))
     }
 }
 
@@ -157,7 +160,9 @@ impl Render for SideBar {
                                         .h_flex()
                                         .gap_2()
                                         .child(Icon::new(AppIconName::IconLight))
-                                        .child(i18n.t("theme-light")),
+                                        .when(!self.collapsed, |this| {
+                                            this.child(i18n.t("theme-light"))
+                                        }),
                                 ),
                             )
                             .child(
@@ -166,7 +171,9 @@ impl Render for SideBar {
                                         .h_flex()
                                         .gap_2()
                                         .child(Icon::new(AppIconName::IconDark))
-                                        .child(i18n.t("theme-dark")),
+                                        .when(!self.collapsed, |this| {
+                                            this.child(i18n.t("theme-dark"))
+                                        }),
                                 ),
                             ),
                     ),

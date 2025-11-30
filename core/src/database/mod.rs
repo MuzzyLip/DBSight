@@ -49,6 +49,12 @@ impl DatabaseType {
     }
 }
 
+impl Into<String> for DatabaseType {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Endpoint {
     TCP(String, u16),
