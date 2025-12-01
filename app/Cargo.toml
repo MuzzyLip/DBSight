@@ -18,4 +18,5 @@ serde = { workspace = true }
 locale_config = "0.3"
 toml = "0.9.8"
 # Local Crate
-db-sight-assets = { path = "../assets" }
+db-sight-assets = { workspace = true }
+db-sight-core = { workspace = true }

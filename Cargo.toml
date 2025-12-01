@@ -8,3 +8,6 @@ serde = "1.0"
 # GPUI
 gpui = "0.2.2"
 gpui-component = "0.4.0"
+# Workspace Crates
+db-sight-assets = { path = "./assets" }
+db-sight-core = { path = "./core" }

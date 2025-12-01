@@ -6,3 +6,5 @@ edition = "2021"
 
 [dependencies]
 uuid = "1.18.1"
+# Local Crate
+db-sight-assets = { workspace = true }

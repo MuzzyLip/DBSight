@@ -13,7 +13,10 @@ use gpui_component::{
     Icon, Side, Sizable, StyledExt, ThemeMode, TitleBar, WindowExt,
 };
 
-use crate::{core::I18n, ui::windows::SwitchThemeMode};
+use crate::{
+    core::I18n,
+    ui::{components::list_database::DatabaseList, windows::SwitchThemeMode},
+};
 
 pub struct TopBar {
     sidebar: Entity<SideBar>,
@@ -21,15 +24,15 @@ pub struct TopBar {
 }
 
 impl TopBar {
-    pub fn new(sidebar: Entity<SideBar>) -> Self {
+    pub fn new(sidebar: Entity<SideBar>, _: &mut Window, _: &mut App) -> Self {
         Self {
             collapsed: false,
             sidebar,
         }
     }
 
-    pub fn view(sidebar: Entity<SideBar>, _: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|_| Self::new(sidebar))
+    pub fn view(sidebar: Entity<SideBar>, window: &mut Window, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self::new(sidebar, window, cx))
     }
 }
 
@@ -79,10 +82,16 @@ impl Render for TopBar {
                     .small()
                     .label(i18n.t("new-connection"))
                     .icon(Icon::new(AppIconName::IconDatabase))
-                    .on_click(|_, window, cx| {
-                        window.open_dialog(cx, |dialog, _, cx| {
+                    .on_click(move |_, window, cx| {
+                        let db_list = cx.new(|cx| DatabaseList::new(cx));
+                        window.open_dialog(cx, move |dialog, _, cx| {
                             let i18n = cx.global::<I18n>();
-                            dialog.title(i18n.t("connection.choose-database"))
+                            dialog
+                                .overlay_closable(false)
+                                .width(px(644.))
+                                .h(px(400.))
+                                .title(i18n.t("connection.choose-database"))
+                                .child(db_list.clone())
                         });
                     }),
             )

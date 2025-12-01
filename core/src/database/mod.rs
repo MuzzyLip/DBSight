@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use db_sight_assets::icons::AppIconName;
+use std::{fmt::Display, path::PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DatabaseType {
@@ -13,21 +14,18 @@ pub enum DatabaseType {
 }
 
 impl DatabaseType {
-    pub fn to_string(&self) -> String {
+    pub fn to_icon(&self) -> AppIconName {
         match self {
-            DatabaseType::Postgre => "PostgreSQL",
-            DatabaseType::MySql => "MySQL",
-            DatabaseType::Sqlite => "SQLite",
-            DatabaseType::MariaDB => "MariaDB",
-            DatabaseType::Oracle => "Oracle",
-            DatabaseType::Redis => "Redis",
-            DatabaseType::MongoDB => "MongoDB",
-            DatabaseType::MicrosoftSQLServer => "Microsoft SQL Server",
+            DatabaseType::Postgre => AppIconName::DBPostgre,
+            DatabaseType::MySql => AppIconName::DBMySql,
+            DatabaseType::Sqlite => AppIconName::DBSqlite,
+            DatabaseType::MariaDB => AppIconName::DBMariaDB,
+            DatabaseType::Oracle => AppIconName::DBOracle,
+            DatabaseType::Redis => AppIconName::DBRedis,
+            DatabaseType::MongoDB => AppIconName::DBMongoDB,
+            DatabaseType::MicrosoftSQLServer => AppIconName::DBMicrosoftSQLServer,
         }
-        .to_string()
     }
-
-    pub fn to_icon(&self) {}
 
     pub const ALL: [DatabaseType; 8] = [
         DatabaseType::Postgre,
@@ -49,15 +47,32 @@ impl DatabaseType {
     }
 }
 
-impl Into<String> for DatabaseType {
-    fn into(self) -> String {
-        self.to_string()
+impl Display for DatabaseType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DatabaseType::Postgre => "PostgreSQL",
+            DatabaseType::MySql => "MySQL",
+            DatabaseType::Sqlite => "SQLite",
+            DatabaseType::MariaDB => "MariaDB",
+            DatabaseType::Oracle => "Oracle",
+            DatabaseType::Redis => "Redis",
+            DatabaseType::MongoDB => "MongoDB",
+            DatabaseType::MicrosoftSQLServer => "Microsoft SQL Server",
+        }
+        .to_string()
+        .fmt(f)
+    }
+}
+
+impl From<DatabaseType> for String {
+    fn from(value: DatabaseType) -> Self {
+        value.to_string()
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Endpoint {
-    TCP(String, u16),
+    Tcp(String, u16),
     Unix(PathBuf),
 }
 
