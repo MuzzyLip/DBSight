@@ -11,14 +11,14 @@ pub use themes::{init_themes, SwitchThemeMode};
 pub use window_option::DefaultWindowOptions;
 
 #[derive(Clone, Copy, Debug)]
-pub enum WindowsName {
+pub enum WindowName {
     Main,
 }
 
-impl WindowsName {
+impl WindowName {
     pub fn size(&self) -> Size<Pixels> {
         match self {
-            WindowsName::Main => size(px(1280.0), px(720.0)),
+            WindowName::Main => size(px(1280.0), px(720.0)),
         }
     }
 }

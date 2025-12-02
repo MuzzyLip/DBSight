@@ -4,100 +4,14 @@ use gpui::{
     ParentElement, Render, Styled, Window,
 };
 use gpui_component::{
-    button::Button,
     sidebar::{
         Sidebar as SidebarComponents, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuItem,
-        SidebarToggleButton,
     },
     tab::{Tab, TabBar},
-    Icon, Side, Sizable, StyledExt, ThemeMode, TitleBar, WindowExt,
+    Icon, Side, StyledExt, ThemeMode,
 };
 
-use crate::{
-    core::I18n,
-    ui::{components::list_database::DatabaseList, windows::SwitchThemeMode},
-};
-
-pub struct TopBar {
-    sidebar: Entity<SideBar>,
-    collapsed: bool,
-}
-
-impl TopBar {
-    pub fn new(sidebar: Entity<SideBar>, _: &mut Window, _: &mut App) -> Self {
-        Self {
-            collapsed: false,
-            sidebar,
-        }
-    }
-
-    pub fn view(sidebar: Entity<SideBar>, window: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self::new(sidebar, window, cx))
-    }
-}
-
-impl Render for TopBar {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let i18n = cx.global::<I18n>();
-        let sidebar_entity = self.sidebar.clone();
-        let topbar_entity = cx.entity();
-        let is_mac = cfg!(target_os = "macos");
-        TitleBar::new()
-            .child(
-                div()
-                    .when(!is_mac, |this| {
-                        this.w(if self.collapsed { px(100.) } else { px(245.) })
-                    })
-                    .h_full()
-                    .h_flex()
-                    .justify_between()
-                    .items_center()
-                    .when(!is_mac, |this| this.child("I'M LOGO"))
-                    .child(
-                        div().cursor_pointer().child(
-                            SidebarToggleButton::left()
-                                .on_click(move |_, _, app| {
-                                    app.update_entity(&topbar_entity, |topbar: &mut Self, cx| {
-                                        topbar.collapsed = !topbar.collapsed;
-                                        let new_val = topbar.collapsed;
-                                        cx.update_entity(
-                                            &sidebar_entity,
-                                            |sidebar: &mut SideBar, _| {
-                                                sidebar.collapsed = new_val;
-                                            },
-                                        )
-                                    })
-                                })
-                                .collapsed(self.collapsed),
-                        ),
-                    ),
-            )
-            .child(div().flex_1())
-            .child(
-                Button::new("db-connection")
-                    .cursor_pointer()
-                    .mr_2()
-                    .ml_2()
-                    .gap_1p5()
-                    .small()
-                    .label(i18n.t("new-connection"))
-                    .icon(Icon::new(AppIconName::IconDatabase))
-                    .on_click(move |_, window, cx| {
-                        let db_list = cx.new(|cx| DatabaseList::new(cx));
-                        window.open_dialog(cx, move |dialog, _, cx| {
-                            let i18n = cx.global::<I18n>();
-                            dialog
-                                .overlay_closable(false)
-                                .width(px(644.))
-                                .h(px(400.))
-                                .title(i18n.t("connection.choose-database"))
-                                .child(db_list.clone())
-                        });
-                    }),
-            )
-            .when(is_mac, |this| this.child(div().mr_4().child("I'M LOGO")))
-    }
-}
+use crate::{core::I18n, ui::windows::SwitchThemeMode};
 
 pub struct SideBar {
     side: Side,

@@ -5,13 +5,13 @@ use gpui_component::{Root, StyledExt};
 
 use crate::ui::{
     components::{SideBar, TopBar},
-    pages::PageRoutes,
+    pages::PageRoute,
 };
 
 pub struct RootApp {
     sidebar: Entity<SideBar>,
     topbar: Entity<TopBar>,
-    current_page: PageRoutes,
+    current_page: PageRoute,
 }
 
 impl RootApp {
@@ -21,7 +21,7 @@ impl RootApp {
         Self {
             sidebar,
             topbar,
-            current_page: PageRoutes::NoDatabase,
+            current_page: PageRoute::NoDatabase,
         }
     }
 

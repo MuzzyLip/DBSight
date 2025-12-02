@@ -18,6 +18,7 @@ pub struct DatabaseList {
     scroll_handle: VirtualListScrollHandle,
     item_sizes: Rc<Vec<Size<Pixels>>>,
     columns_count: usize,
+    pub active_item: Option<DatabaseType>,
 }
 
 const ROW_HEIGHT: f32 = 96.;
@@ -25,6 +26,7 @@ const ROW_HEIGHT: f32 = 96.;
 impl DatabaseList {
     pub fn new(cx: &mut App) -> Self {
         let items = DatabaseType::all().to_vec();
+        let first_item = DatabaseType::all().first().unwrap();
         let columns_count = 4;
         let rows = items.len().div_ceil(columns_count);
         let row_size = size(px(0.), px(ROW_HEIGHT + 16.));
@@ -37,6 +39,7 @@ impl DatabaseList {
             scroll_handle: VirtualListScrollHandle::new(),
             item_sizes,
             columns_count,
+            active_item: Some(*first_item),
         }
     }
 }
@@ -73,12 +76,14 @@ impl Render for DatabaseList {
                                 let ix = IndexPath::new(index);
                                 let is_selected = this.selected_index == Some(ix);
                                 let list_entity_btn = list_entity.clone();
+                                let item_clone = item.clone();
                                 Some(
                                     Button::new(index)
                                         .cursor_pointer()
                                         .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                                             cx.update_entity(&list_entity_btn, move |list, _| {
                                                 list.selected_index = Some(ix);
+                                                list.active_item = Some(item_clone);
                                             })
                                         })
                                         .w_32()

@@ -1,12 +1,12 @@
 use gpui::{App, Bounds, SharedString, WindowBounds, WindowOptions};
 use gpui_component::TitleBar;
 
-use super::WindowsName;
+use super::WindowName;
 
 pub struct DefaultWindowOptions {}
 
 impl DefaultWindowOptions {
-    pub fn build(window_name: WindowsName, cx: &mut App) -> WindowOptions {
+    pub fn build(window_name: WindowName, cx: &mut App) -> WindowOptions {
         let bounds = Bounds::centered(None, window_name.size(), cx);
         let mut titlebar_options = TitleBar::title_bar_options();
         titlebar_options.title = Some(SharedString::from("DBSight"));

@@ -41,10 +41,6 @@ impl DatabaseType {
     pub fn all() -> &'static [DatabaseType] {
         &Self::ALL
     }
-
-    pub fn all_vec() -> Vec<DatabaseType> {
-        Self::ALL.to_vec()
-    }
 }
 
 impl Display for DatabaseType {

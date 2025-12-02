@@ -3,7 +3,7 @@ use gpui_component::Root;
 
 use crate::{
     core::I18n,
-    ui::windows::{init_themes, Assets, DefaultWindowOptions, RootApp, WindowsName},
+    ui::windows::{init_themes, Assets, DefaultWindowOptions, RootApp, WindowName},
 };
 
 mod core;
@@ -16,7 +16,7 @@ fn main() {
         // Init GPUI Components
         gpui_component::init(cx);
         init_themes(cx);
-        let option = DefaultWindowOptions::build(WindowsName::Main, cx);
+        let option = DefaultWindowOptions::build(WindowName::Main, cx);
         let i18n = I18n::new();
         cx.spawn(async move |cx| {
             cx.open_window(option, |window, cx| {

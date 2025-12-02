@@ -57,7 +57,16 @@ impl I18n {
     }
 
     pub fn t(&self, key: &str) -> String {
-        self.dict.get(key).cloned().unwrap_or_default()
+        match self.dict.get(key) {
+            Some(value) => value.clone(),
+            None => {
+                #[cfg(debug_assertions)]
+                {
+                    eprintln!("[I18n] Key not found: {}", key);
+                }
+                String::new()
+            }
+        }
     }
 
     fn load_language(lang: Language) -> HashMap<String, String> {
