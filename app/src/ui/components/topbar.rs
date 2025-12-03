@@ -4,12 +4,12 @@ use gpui::{
     Render, Styled, Window,
 };
 use gpui_component::{
-    button::Button, sidebar::SidebarToggleButton, Icon, Sizable, StyledExt, TitleBar, WindowExt,
+    button::Button, sidebar::SidebarToggleButton, Icon, Sizable, StyledExt, TitleBar,
 };
 
 use crate::{
     core::I18n,
-    ui::components::{create_connection_dialog::CreateConnectionDialog, SideBar},
+    ui::components::{dialog::create_connection_dialog::CreateConnectionDialog, SideBar},
 };
 
 pub struct TopBar {
@@ -27,18 +27,6 @@ impl TopBar {
 
     pub fn view(sidebar: Entity<SideBar>, window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(sidebar, window, cx))
-    }
-
-    // Create an import from url dialog
-    pub fn create_import_from_url_dialog(window: &mut Window, cx: &mut App) {
-        window.open_dialog(cx, move |dialog, _, cx| {
-            let i18n = cx.global::<I18n>();
-            dialog
-                .overlay_closable(false)
-                .width(px(444.))
-                .h(px(200.))
-                .title(i18n.t("connection.connection-url"))
-        });
     }
 }
 

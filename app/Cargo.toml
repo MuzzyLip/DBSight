@@ -17,6 +17,8 @@ serde = { workspace = true }
 # Locale
 locale_config = "0.3"
 toml = "0.9.8"
+# Tokio
+tokio = { workspace = true }
 # Local Crate
 db-sight-assets = { workspace = true }
 db-sight-core = { workspace = true }

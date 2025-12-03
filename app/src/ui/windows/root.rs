@@ -6,6 +6,7 @@ use gpui_component::{Root, StyledExt};
 use crate::ui::{
     components::{SideBar, TopBar},
     pages::PageRoute,
+    state::AppLoadingState,
 };
 
 pub struct RootApp {
@@ -33,6 +34,10 @@ impl RootApp {
 impl Render for RootApp {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dialog_layer = Root::render_dialog_layer(window, cx);
+        let loading = {
+            let app_state = cx.global::<AppLoadingState>();
+            app_state.loading.clone()
+        };
         div()
             .v_flex()
             .size_full()
@@ -47,5 +52,6 @@ impl Render for RootApp {
                 ),
             )
             .children(dialog_layer)
+            .child(loading)
     }
 }

@@ -1,0 +1,267 @@
+use std::{borrow::Cow, time::Duration};
+
+use async_trait::async_trait;
+use sqlx::{
+    decode::Decode,
+    error::Error as SqlxError,
+    mysql::{MySqlPoolOptions, MySqlValueRef},
+    types::JsonValue,
+    MySql, MySqlPool, Row, ValueRef,
+};
+use tokio::time::{sleep, Instant};
+
+use crate::{
+    driver::{DBError, DatabaseDriver},
+    model::{
+        schema::DBSchema,
+        table::{TableColumn, TableDataPage, TableInfo},
+    },
+};
+
+pub struct MySqlDriver {
+    pub uri: String,
+    pub pool: Option<MySqlPool>,
+}
+
+impl MySqlDriver {
+    pub fn new(uri: impl Into<String>) -> Self {
+        Self {
+            uri: uri.into(),
+            pool: None,
+        }
+    }
+
+    fn pool(&self) -> Result<&MySqlPool, DBError> {
+        self.pool
+            .as_ref()
+            .ok_or(DBError::ConnectionError("Not connected".to_string()))
+    }
+
+    fn format_mysql_value(v: MySqlValueRef<'_>) -> String {
+        if v.is_null() {
+            return "NULL".to_string();
+        }
+        if let Ok(s) = <String as Decode<MySql>>::decode(v.clone()) {
+            return s;
+        }
+        if let Ok(n) = <i64 as Decode<MySql>>::decode(v.clone()) {
+            return n.to_string();
+        }
+        if let Ok(f) = <f64 as Decode<MySql>>::decode(v.clone()) {
+            return f.to_string();
+        }
+        if let Ok(b) = <bool as Decode<MySql>>::decode(v.clone()) {
+            return b.to_string();
+        }
+        if let Ok(j) = <JsonValue as Decode<MySql>>::decode(v.clone()) {
+            return j.to_string();
+        }
+        if let Ok(bytes) = <Vec<u8> as Decode<MySql>>::decode(v.clone()) {
+            if let Ok(s) = std::str::from_utf8(&bytes) {
+                return s.to_string();
+            } else {
+                return "<binary>".to_string();
+            }
+        }
+        "<unsupported>".to_string()
+    }
+
+    fn is_auth_error(e: &SqlxError) -> bool {
+        if let SqlxError::Database(db_err) = e {
+            if let Some(code) = db_err.code() {
+                return code == Cow::Borrowed("28000")
+                    && db_err.message().contains("Access denied");
+            }
+        }
+        false
+    }
+}
+
+#[async_trait]
+impl DatabaseDriver for MySqlDriver {
+    fn name(&self) -> &'static str {
+        "MySQL"
+    }
+
+    async fn connect(&mut self) -> Result<(), DBError> {
+        let timeout = Duration::from_secs(10);
+        let retry_interval = Duration::from_millis(500);
+        let deadline = Instant::now() + timeout;
+        loop {
+            match MySqlPoolOptions::new()
+                .max_connections(5)
+                .acquire_timeout(timeout)
+                .connect(&self.uri)
+                .await
+            {
+                Ok(pool) => {
+                    self.pool = Some(pool);
+                    return Ok(());
+                }
+                Err(e) => {
+                    if Self::is_auth_error(&e) {
+                        return Err(DBError::AuthFailedError);
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(DBError::ConnectionTimeout);
+                    }
+                }
+            }
+            sleep(retry_interval).await;
+        }
+    }
+
+    async fn test_connection(&self) -> Result<(), DBError> {
+        let timeout = Duration::from_secs(10);
+        let retry_interval = Duration::from_millis(500);
+        let deadline = Instant::now() + timeout;
+        let mut times = 0;
+        loop {
+            match MySqlPoolOptions::new()
+                .max_connections(5)
+                .acquire_timeout(timeout)
+                .connect(&self.uri)
+                .await
+            {
+                Ok(pool) => {
+                    sqlx::query("SELECT 1").fetch_one(&pool).await?;
+                    return Ok(());
+                }
+                Err(e) => {
+                    times += 1;
+                    eprintln!("Test Connection Times {} Failed, Reason: {:?}", times, e);
+                    if Self::is_auth_error(&e) {
+                        return Err(DBError::AuthFailedError);
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(DBError::ConnectionTimeout);
+                    }
+                }
+            }
+            sleep(retry_interval).await;
+        }
+    }
+
+    async fn list_schemas(&self) -> Result<Vec<DBSchema>, DBError> {
+        let rows = sqlx::query("SHOW DATABASES")
+            .fetch_all(self.pool()?)
+            .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| DBSchema {
+                name: row.get::<String, _>(0),
+            })
+            .collect())
+    }
+
+    async fn list_tables(&self, schema: &str) -> Result<Vec<TableInfo>, DBError> {
+        let sql = format!("SHOW FULL TABLES FROM `{}`", schema);
+
+        let rows = sqlx::query(&sql).fetch_all(self.pool()?).await?;
+
+        let tables = rows
+            .into_iter()
+            .map(|row| {
+                let name: String = row.get(0);
+                let table_type: String = row.get(1);
+                TableInfo { name, table_type }
+            })
+            .collect();
+
+        Ok(tables)
+    }
+
+    async fn get_table_columns(
+        &self,
+        schema: &str,
+        table: &str,
+    ) -> Result<Vec<TableColumn>, DBError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
+            ORDER BY ORDINAL_POSITION
+            "#,
+        )
+        .bind(schema)
+        .bind(table)
+        .fetch_all(self.pool()?)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| TableColumn {
+                name: row.get("COLUMN_NAME"),
+                data_type: row.get("COLUMN_TYPE"),
+                nullable: row.get::<String, _>("IS_NULLABLE") == "YES",
+                default: row.try_get("COLUMN_DEFAULT").ok(),
+            })
+            .collect())
+    }
+
+    async fn fetch_table_data(
+        &self,
+        schema: &str,
+        table: &str,
+        offset: u64,
+        limit: u64,
+    ) -> Result<TableDataPage, DBError> {
+        // 1. Get columns
+        let columns = self.get_table_columns(schema, table).await?;
+        if columns.is_empty() {
+            return Ok(TableDataPage {
+                columns: vec![],
+                rows: vec![],
+                total: 0,
+            });
+        }
+
+        let col_names: Vec<String> = columns.iter().map(|c| c.name.clone()).collect();
+        let quoted_cols = col_names
+            .iter()
+            .map(|c| format!("`{}`", c))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let full_table = format!("`{}`.`{}`", schema, table);
+
+        // 2. Fetch rows
+        let sql = format!(
+            "SELECT {} FROM {} LIMIT {} OFFSET {}",
+            quoted_cols, full_table, limit, offset
+        );
+
+        let rows = sqlx::query(&sql).fetch_all(self.pool()?).await?;
+
+        let mut parsed_rows = Vec::new();
+
+        for row in rows {
+            let mut r = Vec::new();
+            for col in &col_names {
+                let val = row.try_get_raw(col.as_str());
+
+                let s = match val {
+                    Ok(v) => Self::format_mysql_value(v),
+                    Err(_) => "<err>".to_string(),
+                };
+
+                r.push(s);
+            }
+            parsed_rows.push(r);
+        }
+
+        // 3. Count total
+        let total_sql = format!("SELECT COUNT(*) AS cnt FROM {}", full_table);
+        let total: i64 = sqlx::query_scalar(&total_sql)
+            .fetch_one(self.pool()?)
+            .await?;
+
+        Ok(TableDataPage {
+            columns: col_names,
+            rows: parsed_rows,
+            total: total as u64,
+        })
+    }
+}

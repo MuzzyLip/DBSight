@@ -5,6 +5,21 @@ authors = ["MuzzyLip <muzzylip@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+# Uuid
 uuid = "1.18.1"
+# async_trait
+async-trait = "0.1.89"
+# Error Handling
+thiserror = { workspace = true }
+# Tokio
+tokio = { workspace = true }
+# DB Connections
+sqlx = { version = "0.8.6", features = [
+    "runtime-tokio",
+    "mysql",
+    "chrono",
+    "uuid",
+    "json",
+] }
 # Local Crate
 db-sight-assets = { workspace = true }

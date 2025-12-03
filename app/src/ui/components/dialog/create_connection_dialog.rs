@@ -1,9 +1,16 @@
+use db_sight_core::DatabaseType;
 use gpui::{px, App, AppContext, Entity, ParentElement, Render, Styled, Window};
 use gpui_component::{button::Button, Sizable, WindowExt};
 
 use crate::{
     core::I18n,
-    ui::components::{import_url_dialog::ImportUrlDialog, list_database::DatabaseList},
+    ui::components::{
+        dialog::{
+            create_mysql_connection_dialog::CreateMySQLConnectionDialog,
+            import_url_dialog::ImportUrlDialog,
+        },
+        list_database::DatabaseList,
+    },
 };
 
 pub struct CreateConnectionDialog {
@@ -50,10 +57,18 @@ impl CreateConnectionDialog {
                             .small()
                             .px_2()
                             .label(i18n.t("connection.create"))
-                            .on_click(move |_, _, cx| {
+                            .on_click(move |_, window, cx| {
                                 cx.update_entity(&dialog_entity_footer, |this, cx| {
-                                    cx.update_entity(&this.db_list, |db_list, _| {
-                                        println!("Check active item {:?}", db_list.active_item);
+                                    cx.update_entity(&this.db_list, |db_list, cx| {
+                                        match db_list.active_item {
+                                            Some(DatabaseType::MySql) => {
+                                                window.close_dialog(cx);
+                                                CreateMySQLConnectionDialog::open(window, cx)
+                                            }
+                                            _ => {
+                                                eprintln!("Not supported database type");
+                                            }
+                                        }
                                     })
                                 })
                             }),

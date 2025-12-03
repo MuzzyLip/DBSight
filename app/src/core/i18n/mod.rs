@@ -69,6 +69,19 @@ impl I18n {
         }
     }
 
+    pub fn t_with(&self, key: &str, params: &[(&str, &str)]) -> String {
+        let mut text = self.t(key);
+        if text.is_empty() {
+            return text;
+        }
+        for (name, value) in params {
+            let placeholder = format!("{{{{{}}}}}", name);
+            text = text.replace(&placeholder, value);
+        }
+
+        text
+    }
+
     fn load_language(lang: Language) -> HashMap<String, String> {
         let content = match lang {
             Language::En => include_str!("en.toml"),
