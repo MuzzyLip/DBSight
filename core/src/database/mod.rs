@@ -1,7 +1,8 @@
 use db_sight_assets::icons::AppIconName;
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseType {
     Postgre,
     MySql,
@@ -66,13 +67,13 @@ impl From<DatabaseType> for String {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Endpoint {
     Tcp(String, u16),
     Unix(PathBuf),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectionConfig {
     pub id: uuid::Uuid,
     pub name: String,

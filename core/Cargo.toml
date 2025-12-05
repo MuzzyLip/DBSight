@@ -6,11 +6,12 @@ edition = "2021"
 
 [dependencies]
 # Uuid
-uuid = "1.18.1"
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
 # async_trait
 async-trait = "0.1.89"
 # Error Handling
 thiserror = { workspace = true }
+anyhow = { workspace = true }
 # Tokio
 tokio = { workspace = true }
 # DB Connections
@@ -21,5 +22,10 @@ sqlx = { version = "0.8.6", features = [
     "uuid",
     "json",
 ] }
+# Connection Storage
+dirs = "5.0"
+keyring = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 # Local Crate
 db-sight-assets = { workspace = true }
