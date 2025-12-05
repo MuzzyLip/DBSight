@@ -20,3 +20,7 @@
 "connection.save-password" = "Save Password"
 "connection.test-connection" = "Test Connection"
 "connection.save-connection" = "Save Connection"
+"connection.connection-success" = "Connection successful"
+"connection-error.connection-timeout" = "Connection timeout"
+"connection-error.connection-failed" = "Connection failed"
+"connection-error.connection-auth-failed" = "Database authentication failed"

@@ -1,5 +1,3 @@
-use std::{borrow::Cow, time::Duration};
-
 use async_trait::async_trait;
 use sqlx::{
     decode::Decode,
@@ -8,7 +6,7 @@ use sqlx::{
     types::JsonValue,
     MySql, MySqlPool, Row, ValueRef,
 };
-use tokio::time::{sleep, Instant};
+use std::{borrow::Cow, time::Duration};
 
 use crate::{
     driver::{DBError, DatabaseDriver},
@@ -75,6 +73,19 @@ impl MySqlDriver {
         }
         false
     }
+
+    fn is_timeout_error(e: &SqlxError) -> bool {
+        if let SqlxError::PoolTimedOut = e {
+            return true;
+        }
+        false
+    }
+
+    fn build_pool_options() -> MySqlPoolOptions {
+        MySqlPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(10))
+    }
 }
 
 #[async_trait]
@@ -84,61 +95,39 @@ impl DatabaseDriver for MySqlDriver {
     }
 
     async fn connect(&mut self) -> Result<(), DBError> {
-        let timeout = Duration::from_secs(10);
-        let retry_interval = Duration::from_millis(500);
-        let deadline = Instant::now() + timeout;
-        loop {
-            match MySqlPoolOptions::new()
-                .max_connections(5)
-                .acquire_timeout(timeout)
-                .connect(&self.uri)
-                .await
-            {
-                Ok(pool) => {
-                    self.pool = Some(pool);
-                    return Ok(());
-                }
-                Err(e) => {
-                    if Self::is_auth_error(&e) {
-                        return Err(DBError::AuthFailedError);
-                    }
-                    if Instant::now() >= deadline {
-                        return Err(DBError::ConnectionTimeout);
-                    }
+        match Self::build_pool_options().connect(&self.uri).await {
+            Ok(pool) => {
+                self.pool = Some(pool);
+                return Ok(());
+            }
+            Err(e) => {
+                if Self::is_auth_error(&e) {
+                    return Err(DBError::AuthFailedError);
+                } else if Self::is_timeout_error(&e) {
+                    return Err(DBError::ConnectionTimeout);
+                } else {
+                    return Err(DBError::ConnectionError(format!("{:?}", e)));
                 }
             }
-            sleep(retry_interval).await;
         }
     }
 
     async fn test_connection(&self) -> Result<(), DBError> {
-        let timeout = Duration::from_secs(10);
-        let retry_interval = Duration::from_millis(500);
-        let deadline = Instant::now() + timeout;
-        let mut times = 0;
-        loop {
-            match MySqlPoolOptions::new()
-                .max_connections(5)
-                .acquire_timeout(timeout)
-                .connect(&self.uri)
-                .await
-            {
-                Ok(pool) => {
-                    sqlx::query("SELECT 1").fetch_one(&pool).await?;
-                    return Ok(());
-                }
-                Err(e) => {
-                    times += 1;
-                    eprintln!("Test Connection Times {} Failed, Reason: {:?}", times, e);
-                    if Self::is_auth_error(&e) {
-                        return Err(DBError::AuthFailedError);
-                    }
-                    if Instant::now() >= deadline {
-                        return Err(DBError::ConnectionTimeout);
-                    }
+        match Self::build_pool_options().connect(&self.uri).await {
+            Ok(pool) => {
+                sqlx::query("SELECT 1").fetch_one(&pool).await?;
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("Test Connection Failed, Reason: {:?}", e);
+                if Self::is_auth_error(&e) {
+                    return Err(DBError::AuthFailedError);
+                } else if Self::is_timeout_error(&e) {
+                    return Err(DBError::ConnectionTimeout);
+                } else {
+                    return Err(DBError::ConnectionError(format!("{:?}", e)));
                 }
             }
-            sleep(retry_interval).await;
         }
     }
 

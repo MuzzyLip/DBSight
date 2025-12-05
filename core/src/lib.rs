@@ -5,4 +5,4 @@ mod driver;
 mod model;
 
 pub use database::{ConnectionConfig, DatabaseType};
-pub use driver::{DatabaseDriver, MySqlDriver};
+pub use driver::{DBError, DatabaseDriver, MySqlDriver};

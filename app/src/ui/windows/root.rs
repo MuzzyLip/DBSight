@@ -1,12 +1,12 @@
 use gpui::{
     div, App, AppContext, Context, Entity, IntoElement, ParentElement, Render, Styled, Window,
 };
-use gpui_component::{Root, StyledExt};
+use gpui_component::{Root, StyledExt, WindowExt};
 
 use crate::ui::{
     components::{SideBar, TopBar},
     pages::PageRoute,
-    state::AppLoadingState,
+    state::{AppLoadingState, AppNotificationState},
 };
 
 pub struct RootApp {
@@ -34,10 +34,15 @@ impl RootApp {
 impl Render for RootApp {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dialog_layer = Root::render_dialog_layer(window, cx);
+        let notification_layer = Root::render_notification_layer(window, cx);
         let loading = {
             let app_state = cx.global::<AppLoadingState>();
             app_state.loading.clone()
         };
+        let notifications = cx.global_mut::<AppNotificationState>().take();
+        for notification in notifications {
+            window.push_notification(notification, cx);
+        }
         div()
             .v_flex()
             .size_full()
@@ -52,6 +57,7 @@ impl Render for RootApp {
                 ),
             )
             .children(dialog_layer)
+            .children(notification_layer)
             .child(loading)
     }
 }

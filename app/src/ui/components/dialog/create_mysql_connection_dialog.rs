@@ -3,14 +3,18 @@ use gpui_component::{
     button::Button,
     input::{Input, InputState},
     label::Label,
+    notification::Notification,
     v_flex, Sizable, WindowExt,
 };
 
 use crate::{
     core::I18n,
-    ui::{components::Loading, state::AppLoadingState},
+    ui::{
+        components::Loading,
+        state::{AppLoadingState, AppNotificationState},
+    },
 };
-use db_sight_core::{DatabaseDriver, MySqlDriver};
+use db_sight_core::{DBError, DatabaseDriver, MySqlDriver};
 
 pub struct CreateMySQLConnectionDialog {
     name: Entity<InputState>,
@@ -116,15 +120,23 @@ impl CreateMySQLConnectionDialog {
                             .px_2()
                             .small()
                             .label(i18n.t("connection.test-connection"))
-                            .on_click(move |_, _, cx| {
+                            .on_click(move |_, window, cx| {
                                 cx.update_entity(&dialog_entity_footer.clone(), |this, cx| {
                                     let read_value = |entity: &Entity<InputState>| -> String {
                                         cx.read_entity(entity, |input, _| input.value().to_string())
+                                    };
+                                    let (timeout_message, auth_failed_message, connection_failed_message, connection_success, empty_input_message) = {
+                                        let i18n = cx.global::<I18n>();
+                                        (i18n.t("connection-error.connection-timeout"), i18n.t("connection-error.connection-auth-failed"), i18n.t("connection-error.connection-failed"), i18n.t("connection.connection-success"), i18n.t("connection-error.check-input"))
                                     };
                                     let host = read_value(&this.host);
                                     let port = read_value(&this.port);
                                     let username = read_value(&this.username);
                                     let password = read_value(&this.password);
+                                    if host.is_empty() || port.is_empty() {
+                                        window.push_notification(Notification::error(empty_input_message), cx);
+                                        return;
+                                    }
 
                                     let uri = format!("mysql://{}:{}@{}:{}", username, password, host, port);
                                     let app_state = cx.global_mut::<AppLoadingState>();
@@ -133,15 +145,26 @@ impl CreateMySQLConnectionDialog {
                                     cx.spawn(async move |_, cx| {
                                         let driver = MySqlDriver::new(uri);
 
-                                        match driver.test_connection().await {
-                                            Ok(_) => println!("Connection Success"),
+                                        let notification = match driver.test_connection().await {
+                                            Ok(_) => Notification::success(connection_success),
                                             Err(e) => {
                                                 println!("Connection Failed: {}", e);
-                                                
+                                                match e {
+                                                    DBError::ConnectionTimeout => {
+                                                        Notification::error(timeout_message)
+                                                    },
+                                                    DBError::AuthFailedError => {
+                                                        Notification::error(auth_failed_message)
+                                                    }
+                                                    _ => {
+                                                        Notification::error(connection_failed_message)
+                                                    }
+                                                }
                                             },
                                         };
-
-                                        let _ = cx.update(|app| Loading::hide(&loading, app));
+                                        // Show notification & Hide loading
+                                        cx.update(|app| app.global_mut::<AppNotificationState>().push(notification))?;
+                                        cx.update(|app| Loading::hide(&loading, app))?;
 
                                         Ok::<_, anyhow::Error>(())
                                     }).detach();
@@ -151,7 +174,7 @@ impl CreateMySQLConnectionDialog {
                             .small()
                             .px_2()
                             .label(i18n.t("connection.save-connection"))
-                            .on_click(move |_, window, cx| {
+                            .on_click(move |_, _, cx| {
                                 cx.read_entity(&dialog_entity_footer_clone.clone(), |this, cx| {
                                     let read_value = |entity: &Entity<InputState>| -> String {
                                         cx.read_entity(entity, |input, _| input.value().to_string())
@@ -175,11 +198,7 @@ impl CreateMySQLConnectionDialog {
 }
 
 impl Render for CreateMySQLConnectionDialog {
-    fn render(
-        &mut self,
-        window: &mut Window,
-        cx: &mut gpui::Context<Self>,
-    ) -> impl gpui::IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut gpui::Context<Self>) -> impl gpui::IntoElement {
         let i18n = cx.global::<I18n>();
         v_flex()
             .gap_3()

@@ -21,3 +21,8 @@
 "connection.save-password" = "保存密码"
 "connection.test-connection" = "测试连接"
 "connection.save-connection" = "保存连接"
+"connection.connection-success" = "连接成功"
+"connection-error.connection-timeout" = "连接超时"
+"connection-error.connection-failed" = "连接失败"
+"connection-error.connection-auth-failed" = "数据库认证失败"
+"connection-error.check-input" = "请检查输入是否完整"
