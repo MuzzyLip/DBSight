@@ -1,3 +1,4 @@
+use db_sight_core::DBManager;
 use gpui::{AppContext, Application};
 use gpui_component::Root;
 
@@ -24,11 +25,14 @@ async fn main() {
         let i18n = I18n::new();
         let loading_state = AppLoadingState::new(cx);
         let notification_state = AppNotificationState::new();
+        let db_manager = DBManager::default();
         cx.spawn(async move |cx| {
             cx.open_window(option, |window, cx| {
+                // Set Global State
                 cx.set_global(i18n);
                 cx.set_global(loading_state);
                 cx.set_global(notification_state);
+                cx.set_global(db_manager);
                 cx.new(|cx| Root::new(RootApp::view(window, cx), window, cx))
             })?;
 

@@ -26,3 +26,4 @@
 "connection-error.connection-failed" = "连接失败"
 "connection-error.connection-auth-failed" = "数据库认证失败"
 "connection-error.check-input" = "请检查输入是否完整"
+"connection-error.failed-save-connection" = "保存连接失败"

@@ -1,17 +1,18 @@
-use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
-
 use anyhow::Result;
+use gpui::Global;
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{driver::DatabaseDriver, ConnectionConfig};
 
+#[derive(Clone)]
 pub struct DBManager {
     // Active database-driven instances (connected)
-    connections: RwLock<HashMap<String, Arc<dyn DatabaseDriver>>>,
+    connections: Arc<RwLock<HashMap<String, Arc<dyn DatabaseDriver>>>>,
     // Persistent Connection Configuration
-    configs: RwLock<Vec<ConnectionConfig>>,
+    configs: Arc<RwLock<Vec<ConnectionConfig>>>,
     // config file path
-    config_path: PathBuf,
+    config_path: Arc<PathBuf>,
 }
 
 impl DBManager {
@@ -24,9 +25,9 @@ impl DBManager {
         }
         let config_path = config_dir.join("connections.json");
         Self {
-            connections: RwLock::new(HashMap::new()),
-            configs: RwLock::new(Vec::new()),
-            config_path,
+            connections: Arc::new(RwLock::new(HashMap::new())),
+            configs: Arc::new(RwLock::new(Vec::new())),
+            config_path: Arc::new(config_path),
         }
     }
 
@@ -35,7 +36,8 @@ impl DBManager {
         if !self.config_path.exists() {
             return Ok(());
         }
-        let content = fs::read_to_string(&self.config_path)?;
+
+        let content = fs::read_to_string(&*self.config_path)?;
         let configs: Vec<ConnectionConfig> = serde_json::from_str(&content)?;
 
         *self.configs.write().await = configs;
@@ -62,7 +64,7 @@ impl DBManager {
             configs.push(config);
         }
         let json = serde_json::to_string_pretty(&*configs)?;
-        fs::write(&self.config_path, json)?;
+        fs::write(&*self.config_path, json)?;
 
         Ok(())
     }
@@ -73,5 +75,13 @@ impl DBManager {
 
     pub async fn get_connection(&self, key: &str) -> Option<Arc<dyn DatabaseDriver>> {
         self.connections.read().await.get(key).cloned()
+    }
+}
+
+impl Global for DBManager {}
+
+impl Default for DBManager {
+    fn default() -> Self {
+        Self::new()
     }
 }

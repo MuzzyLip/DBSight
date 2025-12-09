@@ -76,7 +76,7 @@ impl Render for DatabaseList {
                                 let ix = IndexPath::new(index);
                                 let is_selected = this.selected_index == Some(ix);
                                 let list_entity_btn = list_entity.clone();
-                                let item_clone = item.clone();
+                                let item_clone = *item;
                                 Some(
                                     Button::new(index)
                                         .cursor_pointer()

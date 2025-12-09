@@ -1397,6 +1397,7 @@ dependencies = [
  "async-trait",
  "db-sight-assets",
  "dirs 5.0.1",
+ "gpui",
  "keyring",
  "serde",
  "serde_json",

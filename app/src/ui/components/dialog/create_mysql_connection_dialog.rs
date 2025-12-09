@@ -1,6 +1,8 @@
 use gpui::{px, App, AppContext, Entity, ParentElement, Render, Styled, Window};
 use gpui_component::{
     button::Button,
+    checkbox::Checkbox,
+    h_flex,
     input::{Input, InputState},
     label::Label,
     notification::Notification,
@@ -14,7 +16,9 @@ use crate::{
         state::{AppLoadingState, AppNotificationState},
     },
 };
-use db_sight_core::{DBError, DatabaseDriver, MySqlDriver};
+use db_sight_core::{
+    ConnectionConfig, DBError, DBManager, DatabaseDriver, DatabaseType, Endpoint, MySqlDriver,
+};
 
 pub struct CreateMySQLConnectionDialog {
     name: Entity<InputState>,
@@ -22,6 +26,7 @@ pub struct CreateMySQLConnectionDialog {
     port: Entity<InputState>,
     username: Entity<InputState>,
     password: Entity<InputState>,
+    is_remember_password: bool,
 }
 
 impl CreateMySQLConnectionDialog {
@@ -84,6 +89,7 @@ impl CreateMySQLConnectionDialog {
             port,
             username,
             password,
+            is_remember_password: false,
         }
     }
 
@@ -100,7 +106,7 @@ impl CreateMySQLConnectionDialog {
             dialog
                 .overlay_closable(false)
                 .width(px(444.))
-                .h(px(500.))
+                .h(px(530.))
                 .title(i18n.t_with(
                     "connection.create-new-connection",
                     &[("db", Self::db_name())],
@@ -125,20 +131,38 @@ impl CreateMySQLConnectionDialog {
                                     let read_value = |entity: &Entity<InputState>| -> String {
                                         cx.read_entity(entity, |input, _| input.value().to_string())
                                     };
-                                    let (timeout_message, auth_failed_message, connection_failed_message, connection_success, empty_input_message) = {
+                                    let (
+                                        timeout_message,
+                                        auth_failed_message,
+                                        connection_failed_message,
+                                        connection_success,
+                                        empty_input_message,
+                                    ) = {
                                         let i18n = cx.global::<I18n>();
-                                        (i18n.t("connection-error.connection-timeout"), i18n.t("connection-error.connection-auth-failed"), i18n.t("connection-error.connection-failed"), i18n.t("connection.connection-success"), i18n.t("connection-error.check-input"))
+                                        (
+                                            i18n.t("connection-error.connection-timeout"),
+                                            i18n.t("connection-error.connection-auth-failed"),
+                                            i18n.t("connection-error.connection-failed"),
+                                            i18n.t("connection.connection-success"),
+                                            i18n.t("connection-error.check-input"),
+                                        )
                                     };
                                     let host = read_value(&this.host);
                                     let port = read_value(&this.port);
                                     let username = read_value(&this.username);
                                     let password = read_value(&this.password);
                                     if host.is_empty() || port.is_empty() {
-                                        window.push_notification(Notification::error(empty_input_message), cx);
+                                        window.push_notification(
+                                            Notification::error(empty_input_message),
+                                            cx,
+                                        );
                                         return;
                                     }
 
-                                    let uri = format!("mysql://{}:{}@{}:{}", username, password, host, port);
+                                    let uri = format!(
+                                        "mysql://{}:{}@{}:{}",
+                                        username, password, host, port
+                                    );
                                     let app_state = cx.global_mut::<AppLoadingState>();
                                     let loading = app_state.loading.clone();
                                     Loading::open(&loading, cx);
@@ -148,48 +172,120 @@ impl CreateMySQLConnectionDialog {
                                         let notification = match driver.test_connection().await {
                                             Ok(_) => Notification::success(connection_success),
                                             Err(e) => {
-                                                println!("Connection Failed: {}", e);
+                                                eprintln!("Connection Failed: {}", e);
                                                 match e {
                                                     DBError::ConnectionTimeout => {
                                                         Notification::error(timeout_message)
-                                                    },
+                                                    }
                                                     DBError::AuthFailedError => {
                                                         Notification::error(auth_failed_message)
                                                     }
-                                                    _ => {
-                                                        Notification::error(connection_failed_message)
-                                                    }
+                                                    _ => Notification::error(
+                                                        connection_failed_message,
+                                                    ),
                                                 }
-                                            },
+                                            }
                                         };
                                         // Show notification & Hide loading
-                                        cx.update(|app| app.global_mut::<AppNotificationState>().push(notification))?;
+                                        cx.update(|app| {
+                                            app.global_mut::<AppNotificationState>()
+                                                .push(notification)
+                                        })?;
                                         cx.update(|app| Loading::hide(&loading, app))?;
 
                                         Ok::<_, anyhow::Error>(())
-                                    }).detach();
+                                    })
+                                    .detach();
                                 })
                             }),
                         Button::new("save-button")
                             .small()
                             .px_2()
                             .label(i18n.t("connection.save-connection"))
-                            .on_click(move |_, _, cx| {
-                                cx.read_entity(&dialog_entity_footer_clone.clone(), |this, cx| {
-                                    let read_value = |entity: &Entity<InputState>| -> String {
-                                        cx.read_entity(entity, |input, _| input.value().to_string())
-                                    };
+                            .on_click(move |_, window, cx| {
+                                cx.update_entity(
+                                    &dialog_entity_footer_clone.clone(),
+                                    |this, cx| {
+                                        let read_value = |entity: &Entity<InputState>| -> String {
+                                            cx.read_entity(entity, |input, _| {
+                                                input.value().to_string()
+                                            })
+                                        };
 
-                                    let name = read_value(&this.name);
-                                    let host = read_value(&this.host);
-                                    let port = read_value(&this.port);
-                                    let username = read_value(&this.username);
-                                    let password = read_value(&this.password);
+                                        let name = read_value(&this.name);
+                                        let host = read_value(&this.host);
+                                        let port = read_value(&this.port);
+                                        let username = read_value(&this.username);
+                                        let password = read_value(&this.password);
+                                        let is_remember_password = this.is_remember_password;
 
-                                    println!(
-                                        "Save Connection => name: {name}, host: {host}, port: {port}, username: {username}, password: {password}"
-                                    );
-                                });
+                                        let empty_input_message = {
+                                            let i18n = cx.global::<I18n>();
+                                            i18n.t("connection-error.check-input")
+                                        };
+
+                                        if host.is_empty() || port.is_empty() || name.is_empty() {
+                                            window.push_notification(
+                                                Notification::error(empty_input_message),
+                                                cx,
+                                            );
+                                            return;
+                                        }
+
+                                        let password_opt = if password.is_empty() {
+                                            None
+                                        } else {
+                                            Some(password.clone())
+                                        };
+
+                                        let app_state = cx.global_mut::<AppLoadingState>();
+                                        let loading = app_state.loading.clone();
+                                        Loading::open(&loading, cx);
+
+                                        let db_manager = cx.global::<DBManager>().clone();
+
+                                        cx.spawn(async move |_, cx| {
+                                            let config = ConnectionConfig::new(
+                                                &name,
+                                                DatabaseType::MySql,
+                                                Endpoint::Tcp(host, port),
+                                                is_remember_password,
+                                                &username,
+                                                password_opt.as_ref().map(|p| p.len() as u8),
+                                            );
+                                            let result =
+                                                db_manager.save_config(config, password_opt).await;
+
+                                            match result {
+                                                Ok(_) => {
+                                                    cx.update(|app| {
+                                                        app.windows().iter().for_each(|window| {
+                                                            window
+                                                                .update(app, |_, window, cx| {
+                                                                    window.close_dialog(cx);
+                                                                })
+                                                                .ok();
+                                                        });
+                                                    })?;
+                                                }
+                                                Err(e) => {
+                                                    cx.update(|app| {
+                                                        eprintln!("Save Connection Failed: {}", e);
+                                                        let fail_message = app.global::<I18n>().t(
+                                                        "connection-error.failed-save-connection",
+                                                    );
+                                                        app.global_mut::<AppNotificationState>()
+                                                            .push(Notification::error(fail_message))
+                                                    })?;
+                                                }
+                                            };
+
+                                            cx.update(|app| Loading::hide(&loading, app))?;
+                                            Ok::<_, anyhow::Error>(())
+                                        })
+                                        .detach();
+                                    },
+                                );
                             }),
                     ]
                 })
@@ -232,6 +328,17 @@ impl Render for CreateMySQLConnectionDialog {
                     .gap_2()
                     .child(Label::new(i18n.t("connection.password")))
                     .child(Input::new(&self.password)),
+            )
+            .child(
+                h_flex().gap_2().child(
+                    Checkbox::new("save-password")
+                        .checked(self.is_remember_password)
+                        .on_click(cx.listener(|this, checked, _, cx| {
+                            this.is_remember_password = *checked;
+                            cx.notify();
+                        }))
+                        .label(i18n.t("connection.save-password")),
+                ),
             )
     }
 }

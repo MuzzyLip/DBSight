@@ -1,6 +1,7 @@
 use db_sight_assets::icons::AppIconName;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseType {
@@ -69,7 +70,9 @@ impl From<DatabaseType> for String {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Endpoint {
-    Tcp(String, u16),
+    // Host + Port
+    Tcp(String, String),
+    // Local File Path
     Unix(PathBuf),
 }
 
@@ -85,4 +88,25 @@ pub struct ConnectionConfig {
     pub username: String,
     pub saved_password_len: Option<u8>,
     // Using keyring crate to store password, Credentials are stored in the system keychain
+}
+
+impl ConnectionConfig {
+    pub fn new(
+        name: &str,
+        db_type: DatabaseType,
+        endpoint: Endpoint,
+        remember_password: bool,
+        username: &str,
+        saved_password_len: Option<u8>,
+    ) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            name: name.to_string(),
+            db_type,
+            endpoint,
+            remember_password,
+            username: username.to_string(),
+            saved_password_len,
+        }
+    }
 }

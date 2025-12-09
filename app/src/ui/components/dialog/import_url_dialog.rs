@@ -53,7 +53,7 @@ impl ImportUrlDialog {
                             .small()
                             .px_2()
                             .label(i18n.t("connection.import"))
-                            .on_click(move |_, window, cx| {
+                            .on_click(move |_, _window, _cx| {
                                 println!("Click Import");
                             }),
                     ]
