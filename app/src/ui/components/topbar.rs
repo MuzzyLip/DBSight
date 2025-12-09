@@ -1,7 +1,7 @@
 use db_sight_assets::icons::AppIconName;
 use gpui::{
-    div, prelude::FluentBuilder, px, App, AppContext, Context, Entity, IntoElement, ParentElement,
-    Render, Styled, Window,
+    div, prelude::FluentBuilder, px, App, AppContext, Context, CursorStyle, Entity, IntoElement,
+    ParentElement, Render, Styled, Window,
 };
 use gpui_component::{
     button::Button, sidebar::SidebarToggleButton, Icon, Sizable, StyledExt, TitleBar,
@@ -9,19 +9,31 @@ use gpui_component::{
 
 use crate::{
     core::I18n,
-    ui::components::{dialog::create_connection_dialog::CreateConnectionDialog, SideBar},
+    ui::{
+        components::{
+            connection_tabs::ConnectionTabs,
+            dialog::create_connection_dialog::CreateConnectionDialog, SideBar,
+        },
+        state::AppConnectionTabsState,
+    },
 };
 
 pub struct TopBar {
     sidebar: Entity<SideBar>,
     collapsed: bool,
+    connection_tabs: Entity<ConnectionTabs>,
 }
 
 impl TopBar {
-    pub fn new(sidebar: Entity<SideBar>, _: &mut Window, _: &mut App) -> Self {
+    pub fn new(sidebar: Entity<SideBar>, _: &mut Window, cx: &mut App) -> Self {
+        let connection_tabs = cx
+            .global::<AppConnectionTabsState>()
+            .connection_tabs
+            .clone();
         Self {
             collapsed: false,
             sidebar,
+            connection_tabs,
         }
     }
 
@@ -48,7 +60,7 @@ impl Render for TopBar {
                     .items_center()
                     .when(!is_mac, |this| this.child("I'M LOGO"))
                     .child(
-                        div().cursor_pointer().child(
+                        div().cursor(CursorStyle::PointingHand).child(
                             SidebarToggleButton::left()
                                 .on_click(move |_, _, app| {
                                     app.update_entity(&topbar_entity, |topbar: &mut Self, cx| {
@@ -66,7 +78,7 @@ impl Render for TopBar {
                         ),
                     ),
             )
-            .child(div().flex_1())
+            .child(self.connection_tabs.clone())
             .child(
                 Button::new("db-connection")
                     .cursor_pointer()

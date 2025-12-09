@@ -5,8 +5,7 @@ authors = ["MuzzyLip <muzzylip@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-# Uuid
-uuid = { version = "1.18.1", features = ["v4", "serde"] }
+uuid = { workspace = true }
 # async_trait
 async-trait = "0.1.89"
 # Error Handling

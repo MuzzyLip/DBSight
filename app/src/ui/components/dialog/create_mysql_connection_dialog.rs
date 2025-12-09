@@ -13,7 +13,7 @@ use crate::{
     core::I18n,
     ui::{
         components::Loading,
-        state::{AppLoadingState, AppNotificationState},
+        state::{AppConnectionTabsState, AppLoadingState, AppNotificationState},
     },
 };
 use db_sight_core::{
@@ -253,13 +253,27 @@ impl CreateMySQLConnectionDialog {
                                                 &username,
                                                 password_opt.as_ref().map(|p| p.len() as u8),
                                             );
-                                            let result =
-                                                db_manager.save_config(config, password_opt).await;
+                                            let result = db_manager
+                                                .save_and_activate_connection(config, password_opt)
+                                                .await;
 
                                             match result {
-                                                Ok(_) => {
+                                                Ok(saved_config) => {
                                                     cx.update(|app| {
                                                         app.windows().iter().for_each(|window| {
+                                                            let tabs_entity = app
+                                                                .global::<AppConnectionTabsState>()
+                                                                .clone()
+                                                                .connection_tabs;
+                                                            app.update_entity(
+                                                                &tabs_entity,
+                                                                |tabs, cx| {
+                                                                    tabs.add_config(
+                                                                        saved_config.clone(),
+                                                                    );
+                                                                    cx.notify();
+                                                                },
+                                                            );
                                                             window
                                                                 .update(app, |_, window, cx| {
                                                                     window.close_dialog(cx);
