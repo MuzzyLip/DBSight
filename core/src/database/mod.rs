@@ -1,4 +1,5 @@
 use db_sight_assets::icons::AppIconName;
+use gpui::SharedString;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf};
 use uuid::Uuid;
@@ -74,6 +75,24 @@ pub enum Endpoint {
     Tcp(String, String),
     // Local File Path
     Unix(PathBuf),
+}
+
+impl Display for Endpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Endpoint::Tcp(host, port) => write!(f, "{}:{}", host, port),
+            Endpoint::Unix(path) => write!(f, "{}", path.display()),
+        }
+    }
+}
+
+impl Into<SharedString> for Endpoint {
+    fn into(self) -> SharedString {
+        match self {
+            Endpoint::Tcp(host, port) => format!("{}:{}", host, port).into(),
+            Endpoint::Unix(path) => path.display().to_string().into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

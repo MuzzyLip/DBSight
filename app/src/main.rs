@@ -46,7 +46,7 @@ async fn main() {
             if !active_configs.is_empty() {
                 cx.update(|cx| {
                     cx.update_entity(&connection_tabs.connection_tabs, |tabs, cx| {
-                        tabs.update_active_configs(active_configs);
+                        tabs.update_active_configs(active_configs, cx);
                         cx.notify();
                     });
                 })?;

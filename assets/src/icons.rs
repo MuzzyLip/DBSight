@@ -1,10 +1,12 @@
-use gpui::{img, App, Entity, Img};
+use gpui::{img, Img};
 use gpui_component::{Icon, IconNamed};
 
 pub enum AppIconName {
     IconDatabase,
     IconLight,
     IconDark,
+    IconChevronsUpDown,
+    IconConnection,
     DBMySql,
     DBPostgre,
     DBMariaDB,
@@ -21,6 +23,8 @@ impl IconNamed for AppIconName {
             AppIconName::IconDatabase => "icons/icon-database.svg",
             AppIconName::IconLight => "icons/icon-sun.svg",
             AppIconName::IconDark => "icons/icon-moon.svg",
+            AppIconName::IconChevronsUpDown => "icons/icon-chevrons-up-down.svg",
+            AppIconName::IconConnection => "icons/icon-connection.svg",
             AppIconName::DBMySql => "icons/db-mysql.svg",
             AppIconName::DBPostgre => "icons/db-postgre.svg",
             AppIconName::DBMariaDB => "icons/db-mariadb.svg",
@@ -35,8 +39,8 @@ impl IconNamed for AppIconName {
 }
 
 impl AppIconName {
-    pub fn icon_view(self, cx: &mut App) -> Entity<Icon> {
-        Icon::new(self).view(cx)
+    pub fn icon_view(self) -> Icon {
+        Icon::new(self)
     }
 
     pub fn img_view(self) -> Img {

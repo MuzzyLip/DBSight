@@ -68,8 +68,9 @@ impl Render for TopBar {
                                         let new_val = topbar.collapsed;
                                         cx.update_entity(
                                             &sidebar_entity,
-                                            |sidebar: &mut SideBar, _| {
+                                            |sidebar: &mut SideBar, cx| {
                                                 sidebar.collapsed = new_val;
+                                                cx.notify();
                                             },
                                         )
                                     })
@@ -87,7 +88,7 @@ impl Render for TopBar {
                     .gap_1p5()
                     .small()
                     .label(i18n.t("new-connection"))
-                    .icon(Icon::new(AppIconName::IconDatabase))
+                    .icon(Icon::new(AppIconName::IconConnection))
                     .on_click(move |_, window, cx| {
                         CreateConnectionDialog::open(window, cx);
                     }),

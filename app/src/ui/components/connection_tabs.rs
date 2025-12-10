@@ -1,4 +1,8 @@
-use db_sight_core::{ConnectionConfig, DBManager};
+use db_sight_assets::icons::AppIconName;
+use db_sight_core::{
+    events::{ActiveConnectionsChanged, SelectedConnectionChanged},
+    ConnectionConfig, DBManager,
+};
 use gpui::{
     div, prelude::FluentBuilder, px, App, AppContext, Context, CursorStyle, Entity,
     InteractiveElement, IntoElement, ParentElement, Render, SharedString,
@@ -36,26 +40,50 @@ impl ConnectionTabs {
         cx.new(|cx| Self::new(cx))
     }
 
-    pub fn update_active_configs(&mut self, configs: Vec<ConnectionConfig>) {
+    pub fn update_active_configs(
+        &mut self,
+        configs: Vec<ConnectionConfig>,
+        cx: &mut Context<Self>,
+    ) {
         self.active_configs = configs;
         if let Some(id) = self.selected_id {
             if !self.active_configs.iter().any(|c| c.id == id) {
                 self.selected_id = None;
+                // Selected ID changed to None
+                cx.emit(SelectedConnectionChanged { id: None });
+                let db_manager = cx.global::<DBManager>();
+                db_manager.set_selected_connection(None);
             }
         }
         if self.selected_id.is_none() && !self.active_configs.is_empty() {
-            self.selected_id = Some(self.active_configs[0].id);
+            let new_id = self.active_configs[0].id;
+            self.selected_id = Some(new_id);
+            // Selected ID changed to Some
+            cx.emit(SelectedConnectionChanged { id: Some(new_id) });
+            let db_manager = cx.global::<DBManager>();
+            db_manager.set_selected_connection(Some(new_id));
         }
+
+        cx.emit(ActiveConnectionsChanged {
+            active_configs: self.active_configs.clone(),
+        });
     }
 
-    pub fn set_selected(&mut self, id: Uuid) {
+    pub fn set_selected(&mut self, id: Uuid, cx: &mut Context<Self>) {
         if self.active_configs.iter().any(|c| c.id == id) {
             self.selected_id = Some(id);
+            let db_manager = cx.global::<DBManager>();
+            db_manager.set_selected_connection(Some(id));
+            cx.emit(SelectedConnectionChanged { id: Some(id) });
         }
     }
 
     pub fn selected_id(&self) -> Option<Uuid> {
         self.selected_id
+    }
+
+    pub fn active_configs(&self) -> &Vec<ConnectionConfig> {
+        &self.active_configs
     }
 
     fn render_tab(
@@ -115,8 +143,8 @@ impl ConnectionTabs {
                     ),
             )
             .on_click(move |_, _, cx| {
-                cx.update_entity(&entity, |tabs: &mut Self, _| {
-                    tabs.set_selected(config_id);
+                cx.update_entity(&entity, |tabs: &mut Self, cx| {
+                    tabs.set_selected(config_id, cx);
                 })
             })
             .tooltip(full_name)
@@ -126,7 +154,16 @@ impl ConnectionTabs {
         self.active_configs.retain(|c| c.id != config_id);
         if self.selected_id == Some(config_id) {
             self.selected_id = self.active_configs.first().map(|c| c.id);
+            // Sync selection change if happened
+            let db_manager = cx.global::<DBManager>();
+            db_manager.set_selected_connection(self.selected_id);
+            cx.emit(SelectedConnectionChanged {
+                id: self.selected_id,
+            });
         }
+        cx.emit(ActiveConnectionsChanged {
+            active_configs: self.active_configs.clone(),
+        });
 
         let db_manager = cx.global::<DBManager>().clone();
         cx.background_executor()
@@ -139,17 +176,29 @@ impl ConnectionTabs {
 
     fn render_more_button(&self, _remaining_count: usize) -> impl IntoElement {
         // TODO: More connection Button
-        div().id("more-connections-button")
+        Button::new("all-connection-list")
+            .absolute()
+            .right_0()
+            .icon(AppIconName::IconDatabase)
+            .cursor_pointer()
     }
 
     /// Add a new connection config and select it
-    pub fn add_config(&mut self, config: ConnectionConfig) {
-        if !self.active_configs.iter().any(|c| c.id == config.id) {
+    pub fn add_config(&mut self, config: ConnectionConfig, cx: &mut Context<Self>) {
+        if let Some(pos) = self.active_configs.iter().position(|c| c.id == config.id) {
+            self.active_configs[pos] = config.clone();
+        } else {
             self.active_configs.push(config.clone());
         }
-        self.selected_id = Some(config.id);
+        self.set_selected(config.id, cx);
+        cx.emit(ActiveConnectionsChanged {
+            active_configs: self.active_configs.clone(),
+        });
     }
 }
+
+impl gpui::EventEmitter<SelectedConnectionChanged> for ConnectionTabs {}
+impl gpui::EventEmitter<ActiveConnectionsChanged> for ConnectionTabs {}
 
 impl Render for ConnectionTabs {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -165,6 +214,7 @@ impl Render for ConnectionTabs {
             .id("connection-tabs")
             .flex_1()
             .overflow_x_scroll()
+            .relative()
             .gap_1()
             .px_2()
             .items_center()
@@ -172,8 +222,6 @@ impl Render for ConnectionTabs {
                 let is_selected = self.selected_id() == Some(config.id);
                 self.render_tab(config, is_selected, window, cx)
             }))
-            .when(remaining_count > 0, |this| {
-                this.child(self.render_more_button(remaining_count))
-            })
+            .child(self.render_more_button(remaining_count))
     }
 }

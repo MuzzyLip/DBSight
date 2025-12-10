@@ -4,13 +4,11 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::{driver::DatabaseDriver, ConnectionConfig, DBConfig};
-
-/// Event emitted when active connections list changes
-#[derive(Debug, Clone)]
-pub struct ActiveConnectionsChanged {
-    pub active_configs: Vec<ConnectionConfig>,
-}
+use crate::{
+    driver::DatabaseDriver,
+    events::{ActiveConnectionsChanged, SelectedConnectionChanged},
+    ConnectionConfig, DBConfig,
+};
 
 #[derive(Clone)]
 pub struct DBManager {
@@ -20,6 +18,8 @@ pub struct DBManager {
     config: Arc<RwLock<DBConfig>>,
     /// Config file Directory
     config_dir: Arc<PathBuf>,
+    /// Currently selected connection ID (InMemory)
+    selected_connection_id: Arc<std::sync::RwLock<Option<Uuid>>>,
 }
 
 impl DBManager {
@@ -34,6 +34,7 @@ impl DBManager {
             connections: Arc::new(RwLock::new(HashMap::new())),
             config: Arc::new(RwLock::new(DBConfig::new())),
             config_dir: Arc::new(config_dir),
+            selected_connection_id: Arc::new(std::sync::RwLock::new(None)),
         }
     }
 
@@ -177,9 +178,22 @@ impl DBManager {
         self.add_active_connection(config_id).await?;
         Ok(config)
     }
+
+    // ========== Selection Management ==========
+
+    pub fn set_selected_connection(&self, id: Option<Uuid>) {
+        if let Ok(mut selected) = self.selected_connection_id.write() {
+            *selected = id;
+        }
+    }
+
+    pub fn get_selected_connection(&self) -> Option<Uuid> {
+        self.selected_connection_id.read().ok().and_then(|id| *id)
+    }
 }
 
 impl EventEmitter<ActiveConnectionsChanged> for DBManager {}
+impl EventEmitter<SelectedConnectionChanged> for DBManager {}
 
 impl Global for DBManager {}
 

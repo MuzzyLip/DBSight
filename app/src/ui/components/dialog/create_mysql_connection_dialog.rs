@@ -270,6 +270,7 @@ impl CreateMySQLConnectionDialog {
                                                                 |tabs, cx| {
                                                                     tabs.add_config(
                                                                         saved_config.clone(),
+                                                                        cx,
                                                                     );
                                                                     cx.notify();
                                                                 },

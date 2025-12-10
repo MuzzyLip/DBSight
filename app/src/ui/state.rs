@@ -55,7 +55,7 @@ impl AppConnectionTabsState {
     /// Add a new connection config and refresh the tabs
     pub fn add_config(&self, config: ConnectionConfig, cx: &mut App) {
         cx.update_entity(&self.connection_tabs, |tabs, cx| {
-            tabs.add_config(config);
+            tabs.add_config(config, cx);
             cx.notify();
         });
     }
