@@ -1,8 +1,31 @@
 use db_sight_core::ConnectionConfig;
-use gpui::{App, AppContext, Entity, Global};
+use gpui::{App, AppContext, Entity, Global, SharedString};
 use gpui_component::notification::Notification;
+use serde::{Deserialize, Serialize};
 
 use crate::ui::components::{ConnectionTabs, Loading};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppState {
+    pub theme: SharedString,
+    pub collapsed: bool,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            theme: "Ayu Dark".into(),
+            collapsed: false,
+        }
+    }
+}
+
+impl Global for AppState {}
 
 // Loading State
 #[derive(Debug, Clone)]

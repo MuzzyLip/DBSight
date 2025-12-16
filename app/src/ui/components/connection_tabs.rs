@@ -4,9 +4,8 @@ use db_sight_core::{
     ConnectionConfig, DBManager,
 };
 use gpui::{
-    div, prelude::FluentBuilder, px, App, AppContext, Context, CursorStyle, Entity,
-    InteractiveElement, IntoElement, ParentElement, Render, SharedString,
-    StatefulInteractiveElement, Styled, TextOverflow, Window,
+    div, px, App, AppContext, Context, CursorStyle, Entity, InteractiveElement, IntoElement,
+    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, TextOverflow, Window,
 };
 use gpui_component::{
     button::{Button, ButtonCustomVariant, ButtonVariants},

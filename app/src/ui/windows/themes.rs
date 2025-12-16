@@ -1,20 +1,6 @@
-use gpui::{Action, App, SharedString};
+use gpui::{Action, App};
 use gpui_component::{Theme, ThemeMode, ThemeRegistry};
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct AppState {
-    theme: SharedString,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            theme: "Ayu Dark".into(),
-        }
-    }
-}
 
 pub fn init_themes(cx: &mut App) {
     // TODO: Cache To AppData

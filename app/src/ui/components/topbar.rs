@@ -1,7 +1,7 @@
 use db_sight_assets::icons::AppIconName;
 use gpui::{
-    div, prelude::FluentBuilder, px, App, AppContext, Context, CursorStyle, Entity, IntoElement,
-    ParentElement, Render, Styled, Window,
+    div, prelude::FluentBuilder, px, App, AppContext, BorrowAppContext, Context, CursorStyle,
+    Entity, IntoElement, ParentElement, Render, Styled, Window,
 };
 use gpui_component::{
     button::Button, sidebar::SidebarToggleButton, Icon, Sizable, StyledExt, TitleBar,
@@ -14,13 +14,12 @@ use crate::{
             connection_tabs::ConnectionTabs,
             dialog::create_connection_dialog::CreateConnectionDialog, SideBar,
         },
-        state::AppConnectionTabsState,
+        state::{AppConnectionTabsState, AppState},
     },
 };
 
 pub struct TopBar {
     sidebar: Entity<SideBar>,
-    collapsed: bool,
     connection_tabs: Entity<ConnectionTabs>,
 }
 
@@ -31,7 +30,6 @@ impl TopBar {
             .connection_tabs
             .clone();
         Self {
-            collapsed: false,
             sidebar,
             connection_tabs,
         }
@@ -48,11 +46,12 @@ impl Render for TopBar {
         let sidebar_entity = self.sidebar.clone();
         let topbar_entity = cx.entity();
         let is_mac = cfg!(target_os = "macos");
+        let collapsed = cx.global::<AppState>().collapsed;
         TitleBar::new()
             .child(
                 div()
                     .when(!is_mac, |this| {
-                        this.w(if self.collapsed { px(100.) } else { px(245.) })
+                        this.w(if collapsed { px(100.) } else { px(245.) })
                     })
                     .h_full()
                     .h_flex()
@@ -63,19 +62,21 @@ impl Render for TopBar {
                         div().cursor(CursorStyle::PointingHand).child(
                             SidebarToggleButton::left()
                                 .on_click(move |_, _, app| {
-                                    app.update_entity(&topbar_entity, |topbar: &mut Self, cx| {
-                                        topbar.collapsed = !topbar.collapsed;
-                                        let new_val = topbar.collapsed;
+                                    app.update_entity(&topbar_entity, |_topbar: &mut Self, cx| {
+                                        let new_val = !cx.global::<AppState>().collapsed;
+                                        cx.update_global::<AppState, _>(|state, cx| {
+                                            state.collapsed = new_val;
+                                            cx.notify();
+                                        });
                                         cx.update_entity(
                                             &sidebar_entity,
-                                            |sidebar: &mut SideBar, cx| {
-                                                sidebar.collapsed = new_val;
+                                            |_sidebar: &mut SideBar, cx| {
                                                 cx.notify();
                                             },
                                         )
                                     })
                                 })
-                                .collapsed(self.collapsed),
+                                .collapsed(collapsed),
                         ),
                     ),
             )

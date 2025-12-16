@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use crate::{
     core::I18n,
-    ui::{state::AppConnectionTabsState, windows::SwitchThemeMode},
+    ui::{state::{AppConnectionTabsState, AppState}, windows::SwitchThemeMode},
 };
 use db_sight_core::{
     events::{ActiveConnectionsChanged, SelectedConnectionChanged},
@@ -26,7 +26,6 @@ use db_sight_core::{
 
 pub struct SideBar {
     side: Side,
-    pub(crate) collapsed: bool,
     active_theme_ix: usize,
     selected_connection_id: Option<Uuid>,
     active_connections: Vec<ConnectionConfig>,
@@ -73,7 +72,6 @@ impl SideBar {
 
         Self {
             side: Side::Left,
-            collapsed: false,
             active_theme_ix: 1,
             selected_connection_id,
             active_connections,
@@ -92,6 +90,7 @@ impl SideBar {
 
     fn render_theme(&self, cx: &mut Context<Self>) -> Div {
         let i18n = cx.global::<I18n>();
+        let collapsed = cx.global::<AppState>().collapsed;
         div()
             .h_flex()
             .gap_2()
@@ -121,7 +120,7 @@ impl SideBar {
                                 .h_flex()
                                 .gap_2()
                                 .child(Icon::new(AppIconName::IconLight))
-                                .when(!self.collapsed, |this| this.child(i18n.t("theme-light"))),
+                                .when(!collapsed, |this| this.child(i18n.t("theme-light"))),
                         ),
                     )
                     .child(
@@ -130,7 +129,7 @@ impl SideBar {
                                 .h_flex()
                                 .gap_2()
                                 .child(Icon::new(AppIconName::IconDark))
-                                .when(!self.collapsed, |this| this.child(i18n.t("theme-dark"))),
+                                .when(!collapsed, |this| this.child(i18n.t("theme-dark"))),
                         ),
                     ),
             )
@@ -140,12 +139,12 @@ impl SideBar {
 impl Render for SideBar {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let connection = self.get_selected_connection_config();
+        let collapsed = cx.global::<AppState>().collapsed;
 
-        let content = SidebarContent::new(connection).collapsed(self.collapsed);
+        let content = SidebarContent::new(connection);
 
         SidebarComponents::new(self.side)
-            .collapsed(self.collapsed)
-            .width(px(if self.collapsed { 110. } else { 255. }))
+            .width(px(if collapsed { 110. } else { 255. }))
             .child(content)
             .footer(self.render_theme(cx))
     }
@@ -179,14 +178,14 @@ impl Collapsible for SidebarContent {
 
 impl RenderOnce for SidebarContent {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let collapsed = cx.global::<AppState>().collapsed;
         let _i18n = cx.global::<I18n>();
-        let is_collapsed = self.is_collapsed();
         let base = v_flex()
             .relative()
             .justify_center()
             .p_6()
             .gap_2()
-            .w(px(if self.collapsed { 110. } else { 255. }));
+            .w(px(if collapsed { 110. } else { 255. }));
         match self.connection {
             Some(connection) => {
                 let name = connection.name;
@@ -198,11 +197,12 @@ impl RenderOnce for SidebarContent {
                     // TODO: Right Context Menu To Show Connection Operation
                     h_flex()
                         .justify_between()
+                        .when(collapsed, |this| this.justify_center())
                         .items_center()
                         .gap_3()
                         .cursor_pointer()
                         .child(connection.db_type.to_icon().img_view().size(px(40.)))
-                        .when(!is_collapsed, |this| {
+                        .when(!collapsed, |this| {
                             this.child(
                                 v_flex()
                                     .overflow_x_hidden()
