@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct TableInfo {
     pub name: String,
     pub table_type: String,

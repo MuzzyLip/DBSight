@@ -23,7 +23,7 @@ sqlx = { version = "0.8.6", features = [
 ] }
 # Connection Storage
 dirs = "5.0"
-keyring = "2"
+keyring = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # GPUI

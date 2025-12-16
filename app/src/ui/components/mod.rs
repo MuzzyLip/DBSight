@@ -1,6 +1,7 @@
 mod connection_tabs;
 mod dialog;
 mod list_database;
+mod list_tables;
 mod loading;
 mod sidebar;
 mod topbar;

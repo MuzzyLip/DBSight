@@ -153,7 +153,15 @@ impl DatabaseDriver for MySqlDriver {
             .into_iter()
             .map(|row| {
                 let name: String = row.get(0);
-                let table_type: String = row.get(1);
+                // Some MySQL variants may return this column as BINARY instead of VARCHAR,
+                // so we fall back to decoding bytes and converting to String.
+                let table_type: String = match row.try_get::<String, _>(1) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        let bytes: Vec<u8> = row.try_get::<Vec<u8>, _>(1).unwrap_or_default();
+                        String::from_utf8_lossy(&bytes).into_owned()
+                    }
+                };
                 TableInfo { name, table_type }
             })
             .collect();

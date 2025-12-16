@@ -21,6 +21,8 @@ toml = "0.9.8"
 tokio = { workspace = true }
 # Uuid
 uuid = { workspace = true }
+# Password storage (for auto-connect)
+keyring = { workspace = true }
 # Local Crate
 db-sight-assets = { workspace = true }
 db-sight-core = { workspace = true }

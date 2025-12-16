@@ -26,3 +26,6 @@
 "connection-error.connection-failed" = "Connection failed"
 "connection-error.connection-auth-failed" = "Database authentication failed"
 "connection-error.failed-save-connection" = "Failed to save connection"
+"database.tables" = "Tables"
+"database.views" = "Views"
+"database.queries" = "Queries"

@@ -1374,6 +1374,7 @@ dependencies = [
  "db-sight-core",
  "gpui",
  "gpui-component",
+ "keyring",
  "locale_config",
  "rust-embed",
  "serde",
