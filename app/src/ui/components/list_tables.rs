@@ -1,3 +1,4 @@
+use db_sight_core::events::SelectedTableChanged;
 use gpui::{
     div, App, InteractiveElement, ParentElement, SharedString, StatefulInteractiveElement, Styled,
     TextOverflow,
@@ -7,6 +8,8 @@ use gpui_component::{
     tooltip::Tooltip,
     IndexPath,
 };
+
+use crate::ui::state::AppTableState;
 
 pub struct ListTables {
     items: Vec<String>,
@@ -44,6 +47,7 @@ impl ListDelegate for ListTables {
             let id = format!("table-name-{}", fullname.clone());
             let showname = fullname.clone();
             ListItem::new(ix)
+                .rounded_md()
                 .child(
                     div()
                         .id(SharedString::from(id))
@@ -64,6 +68,16 @@ impl ListDelegate for ListTables {
         cx: &mut gpui::Context<ListState<Self>>,
     ) {
         self.selected_index = ix;
+        if let Some(index) = ix {
+            if let Some(name) = self.items.get(index.row) {
+                let name = name.clone();
+                let global_state = cx.global::<AppTableState>().state.clone();
+                global_state.update(cx, |state, cx| {
+                    state.selected_table = Some(name.clone());
+                    cx.emit(SelectedTableChanged { table_name: name });
+                });
+            }
+        }
         cx.notify();
     }
 }

@@ -30,3 +30,8 @@
 "database.tables" = "表"
 "database.views" = "视图"
 "database.queries" = "查询"
+"no-connection.title" = "暂无数据库连接"
+"no-connection.description" = "点击右上角「新建连接」按钮创建您的第一个数据库连接"
+"table.loading" = "加载中..."
+"table.no-table-selected" = "未选择表"
+"table.select-table-hint" = "请从左侧列表中选择一个表来查看数据"

@@ -13,7 +13,8 @@ use crate::{
     core::I18n,
     ui::{
         components::Loading,
-        state::{AppConnectionTabsState, AppLoadingState, AppNotificationState},
+        pages::PageRoute,
+        state::{AppConnectionTabsState, AppLoadingState, AppNotificationState, AppState},
     },
 };
 use db_sight_core::{
@@ -260,6 +261,9 @@ impl CreateMySQLConnectionDialog {
                                             match result {
                                                 Ok(saved_config) => {
                                                     cx.update(|app| {
+                                                        // Switch to DatabaseColumns page on successful connection
+                                                        app.global_mut::<AppState>().current_page = PageRoute::DatabaseColumns;
+                                                        
                                                         app.windows().iter().for_each(|window| {
                                                             let tabs_entity = app
                                                                 .global::<AppConnectionTabsState>()

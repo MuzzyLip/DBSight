@@ -5,24 +5,25 @@ use gpui_component::{Root, StyledExt, WindowExt};
 
 use crate::ui::{
     components::{SideBar, TopBar},
-    pages::PageRoute,
-    state::{AppLoadingState, AppNotificationState},
+    pages::tables::table::PageTables,
+    state::{AppLoadingState, AppNotificationState, AppState},
 };
 
 pub struct RootApp {
     sidebar: Entity<SideBar>,
     topbar: Entity<TopBar>,
-    current_page: PageRoute,
+    page_tables: Entity<PageTables>,
 }
 
 impl RootApp {
     fn new(window: &mut Window, cx: &mut App) -> Self {
         let sidebar = SideBar::view(window, cx);
         let topbar = TopBar::view(sidebar.clone(), window, cx);
+        let page_tables = PageTables::view(cx);
         Self {
             sidebar,
             topbar,
-            current_page: PageRoute::NoDatabase,
+            page_tables,
         }
     }
 
@@ -39,22 +40,27 @@ impl Render for RootApp {
             let app_state = cx.global::<AppLoadingState>();
             app_state.loading.clone()
         };
+        let current_page = cx.global::<AppState>().current_page;
         let notifications = cx.global_mut::<AppNotificationState>().take();
         for notification in notifications {
             window.push_notification(notification, cx);
         }
+
         div()
             .v_flex()
             .size_full()
             .child(self.topbar.clone())
             .child(
-                div().h_flex().flex_1().child(self.sidebar.clone()).child(
-                    div()
-                        .size_full()
-                        .justify_center()
-                        .items_center()
-                        .child("Content"),
-                ),
+                div()
+                    .h_flex()
+                    .flex_1()
+                    .child(self.sidebar.clone())
+                    .child(match current_page {
+                        crate::ui::pages::PageRoute::DatabaseColumns => {
+                            self.page_tables.clone().into_any_element()
+                        }
+                        _ => current_page.to_element(cx).into_any_element(),
+                    }),
             )
             .children(dialog_layer)
             .children(notification_layer)

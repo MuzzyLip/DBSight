@@ -6,7 +6,9 @@ use crate::{
     core::I18n,
     ui::{
         components::ConnectionTabs,
-        state::{AppConnectionTabsState, AppLoadingState, AppNotificationState, AppState},
+        state::{
+            AppConnectionTabsState, AppLoadingState, AppNotificationState, AppState, AppTableState,
+        },
         windows::{init_themes, Assets, DefaultWindowOptions, RootApp, WindowName},
     },
 };
@@ -29,6 +31,7 @@ async fn main() {
         let db_manager = DBManager::default();
         let connection_tabs = AppConnectionTabsState::new(ConnectionTabs::view(cx));
         let app_state = AppState::new();
+        let table_state = AppTableState::new(cx);
         cx.spawn(async move |cx| {
             cx.open_window(option, |window, cx| {
                 // Set Global State
@@ -38,6 +41,7 @@ async fn main() {
                 cx.set_global(db_manager.clone());
                 cx.set_global(connection_tabs.clone());
                 cx.set_global(app_state.clone());
+                cx.set_global(table_state);
                 cx.new(|cx| Root::new(RootApp::view(window, cx), window, cx))
             })?;
 

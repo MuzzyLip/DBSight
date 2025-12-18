@@ -3,7 +3,7 @@ use sqlx::{
     decode::Decode,
     error::Error as SqlxError,
     mysql::{MySqlPoolOptions, MySqlValueRef},
-    types::JsonValue,
+    types::{chrono::NaiveDateTime, JsonValue},
     MySql, MySqlPool, Row, ValueRef,
 };
 use std::{borrow::Cow, time::Duration};
@@ -39,28 +39,72 @@ impl MySqlDriver {
         if v.is_null() {
             return "NULL".to_string();
         }
-        if let Ok(s) = <String as Decode<MySql>>::decode(v.clone()) {
-            return s;
+
+        // Try to decode as date/time types first
+        if let Ok(dt) = <NaiveDateTime as Decode<MySql>>::decode(v.clone()) {
+            return dt.format("%Y-%m-%d %H:%M:%S").to_string();
         }
+
+        // Try to decode as date type
+        if let Ok(date) = <chrono::NaiveDate as Decode<MySql>>::decode(v.clone()) {
+            return date.format("%Y-%m-%d").to_string();
+        }
+
+        // Try to decode as time type
+        if let Ok(time) = <chrono::NaiveTime as Decode<MySql>>::decode(v.clone()) {
+            return time.format("%H:%M:%S").to_string();
+        }
+
+        // Try integer types before string to avoid empty string issues
         if let Ok(n) = <i64 as Decode<MySql>>::decode(v.clone()) {
             return n.to_string();
         }
+        if let Ok(n) = <i32 as Decode<MySql>>::decode(v.clone()) {
+            return n.to_string();
+        }
+        if let Ok(n) = <u64 as Decode<MySql>>::decode(v.clone()) {
+            return n.to_string();
+        }
+        if let Ok(n) = <u32 as Decode<MySql>>::decode(v.clone()) {
+            return n.to_string();
+        }
+
+        // Try floating point types
         if let Ok(f) = <f64 as Decode<MySql>>::decode(v.clone()) {
             return f.to_string();
         }
+        if let Ok(f) = <f32 as Decode<MySql>>::decode(v.clone()) {
+            return f.to_string();
+        }
+
+        // Try boolean
         if let Ok(b) = <bool as Decode<MySql>>::decode(v.clone()) {
             return b.to_string();
         }
+
+        // Try JSON
         if let Ok(j) = <JsonValue as Decode<MySql>>::decode(v.clone()) {
             return j.to_string();
         }
-        if let Ok(bytes) = <Vec<u8> as Decode<MySql>>::decode(v.clone()) {
-            if let Ok(s) = std::str::from_utf8(&bytes) {
-                return s.to_string();
-            } else {
-                return "<binary>".to_string();
+
+        // Try string (after numeric types to avoid empty string issues)
+        if let Ok(s) = <String as Decode<MySql>>::decode(v.clone()) {
+            // Only return string if it's not empty, otherwise try bytes
+            if !s.is_empty() {
+                return s;
             }
         }
+
+        // Try bytes as fallback
+        if let Ok(bytes) = <Vec<u8> as Decode<MySql>>::decode(v.clone()) {
+            if let Ok(s) = std::str::from_utf8(&bytes) {
+                if !s.is_empty() {
+                    return s.to_string();
+                }
+            }
+            return "<binary>".to_string();
+        }
+
         "<unsupported>".to_string()
     }
 
@@ -138,8 +182,17 @@ impl DatabaseDriver for MySqlDriver {
 
         Ok(rows
             .into_iter()
-            .map(|row| DBSchema {
-                name: row.get::<String, _>(0),
+            .map(|row| {
+                // Handle both VARCHAR and VARBINARY types
+                let name: String = match row.try_get::<String, _>(0) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        // Fallback: try to decode as bytes
+                        let bytes: Vec<u8> = row.get(0);
+                        String::from_utf8_lossy(&bytes).to_string()
+                    }
+                };
+                DBSchema { name }
             })
             .collect())
     }
@@ -152,7 +205,14 @@ impl DatabaseDriver for MySqlDriver {
         let tables = rows
             .into_iter()
             .map(|row| {
-                let name: String = row.get(0);
+                // Handle both VARCHAR and VARBINARY types for table name
+                let name: String = match row.try_get::<String, _>(0) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        let bytes: Vec<u8> = row.get(0);
+                        String::from_utf8_lossy(&bytes).to_string()
+                    }
+                };
                 // Some MySQL variants may return this column as BINARY instead of VARCHAR,
                 // so we fall back to decoding bytes and converting to String.
                 let table_type: String = match row.try_get::<String, _>(1) {
@@ -176,7 +236,11 @@ impl DatabaseDriver for MySqlDriver {
     ) -> Result<Vec<TableColumn>, DBError> {
         let rows = sqlx::query(
             r#"
-            SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+            SELECT 
+                CAST(COLUMN_NAME AS CHAR(255)) AS COLUMN_NAME, 
+                CAST(COLUMN_TYPE AS CHAR(255)) AS COLUMN_TYPE, 
+                CAST(IS_NULLABLE AS CHAR(10)) AS IS_NULLABLE, 
+                COLUMN_DEFAULT
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
             ORDER BY ORDINAL_POSITION

@@ -11,3 +11,9 @@ pub struct ActiveConnectionsChanged {
 pub struct SelectedConnectionChanged {
     pub id: Option<uuid::Uuid>,
 }
+
+/// Event emitted when selected table changes
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectedTableChanged {
+    pub table_name: String,
+}

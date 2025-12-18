@@ -1,14 +1,19 @@
-use db_sight_core::ConnectionConfig;
-use gpui::{App, AppContext, Entity, Global, SharedString};
+use db_sight_core::{events::SelectedTableChanged, ConnectionConfig};
+use gpui::{App, AppContext, Entity, EventEmitter, Global, SharedString};
 use gpui_component::notification::Notification;
 use serde::{Deserialize, Serialize};
 
-use crate::ui::components::{ConnectionTabs, Loading};
+use crate::ui::{
+    components::{ConnectionTabs, Loading},
+    pages::PageRoute,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     pub theme: SharedString,
     pub collapsed: bool,
+    #[serde(skip)]
+    pub current_page: PageRoute,
 }
 
 impl AppState {
@@ -21,6 +26,7 @@ impl Default for AppState {
         Self {
             theme: "Ayu Dark".into(),
             collapsed: false,
+            current_page: PageRoute::NoDatabase,
         }
     }
 }
@@ -85,3 +91,20 @@ impl AppConnectionTabsState {
 }
 
 impl Global for AppConnectionTabsState {}
+
+pub struct TableSelectionState {
+    pub selected_table: Option<String>,
+}
+impl EventEmitter<SelectedTableChanged> for TableSelectionState {}
+pub struct AppTableState {
+    pub state: Entity<TableSelectionState>,
+}
+impl AppTableState {
+    pub fn new(cx: &mut App) -> Self {
+        let state = cx.new(|_| TableSelectionState {
+            selected_table: None,
+        });
+        Self { state }
+    }
+}
+impl Global for AppTableState {}

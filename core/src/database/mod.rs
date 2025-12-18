@@ -86,9 +86,9 @@ impl Display for Endpoint {
     }
 }
 
-impl Into<SharedString> for Endpoint {
-    fn into(self) -> SharedString {
-        match self {
+impl From<Endpoint> for SharedString {
+    fn from(value: Endpoint) -> Self {
+        match value {
             Endpoint::Tcp(host, port) => format!("{}:{}", host, port).into(),
             Endpoint::Unix(path) => path.display().to_string().into(),
         }

@@ -13,6 +13,8 @@ use gpui_component::{
 };
 use uuid::Uuid;
 
+use crate::ui::{pages::PageRoute, state::AppState};
+
 /// Maximum number of connection labels displayed
 const MAX_VISIBLE_TABS: usize = 8;
 /// Maximum Display Width for Label Name (pixels)
@@ -74,6 +76,9 @@ impl ConnectionTabs {
             let db_manager = cx.global::<DBManager>();
             db_manager.set_selected_connection(Some(id));
             cx.emit(SelectedConnectionChanged { id: Some(id) });
+
+            // Switch to DatabaseColumns page when selecting a connection
+            cx.global_mut::<AppState>().current_page = PageRoute::DatabaseColumns;
         }
     }
 
@@ -159,6 +164,11 @@ impl ConnectionTabs {
             cx.emit(SelectedConnectionChanged {
                 id: self.selected_id,
             });
+
+            // Switch to NoDatabase page if no connections left
+            if self.selected_id.is_none() {
+                cx.global_mut::<AppState>().current_page = PageRoute::NoDatabase;
+            }
         }
         cx.emit(ActiveConnectionsChanged {
             active_configs: self.active_configs.clone(),

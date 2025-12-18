@@ -21,6 +21,8 @@ sqlx = { version = "0.8.6", features = [
     "uuid",
     "json",
 ] }
+# Date/Time handling
+chrono = "0.4"
 # Connection Storage
 dirs = "5.0"
 keyring = { workspace = true }

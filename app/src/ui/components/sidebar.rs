@@ -112,7 +112,7 @@ impl SideBar {
     }
 
     pub fn view(_: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self::new(cx))
+        cx.new(Self::new)
     }
 
     fn render_theme(&self, cx: &mut Context<Self>) -> Div {
@@ -295,7 +295,7 @@ impl SidebarContent {
                     // Only MySQL is supported right now
                     if let db_sight_core::Endpoint::Tcp(host, port) = &config.endpoint {
                         // Pull password from keyring if saved
-                        let password = if let Some(_) = config.saved_password_len {
+                        let password = if config.saved_password_len.is_some() {
                             match Entry::new("db-sight", &config.id.to_string()) {
                                 Ok(entry) => entry.get_password().ok(),
                                 Err(_) => None,
@@ -328,7 +328,6 @@ impl SidebarContent {
                 }
             }
 
-            println!("Check Driver Instance {:?}", driver.is_some());
             if let Some(driver) = driver {
                 // Fetch all schemas
                 match driver.list_schemas().await {
@@ -373,7 +372,7 @@ impl SidebarContent {
                 }
             } else {
                 // Connection missing, clear tables
-                println!("No connection found.");
+                eprintln!("No connection found.");
                 cx.update_entity(&entity, |content: &mut Self, cx| {
                     content.tables.clear();
                     content.loading_tables = false;
@@ -512,9 +511,30 @@ impl Render for SidebarContent {
                                 this.selected_tab = *ev;
                                 cx.notify();
                             }))
-                            .child(Tab::new().flex_1().label(i18n.t("database.tables")))
-                            .child(Tab::new().flex_1().label(i18n.t("database.views")))
-                            .child(Tab::new().flex_1().label(i18n.t("database.queries"))),
+                            .child(
+                                Tab::new()
+                                    .flex_1()
+                                    .label(i18n.t("database.tables"))
+                                    .when(self.selected_tab == 0, |this| {
+                                        this.icon(AppIconName::IconTable)
+                                    }),
+                            )
+                            .child(
+                                Tab::new()
+                                    .flex_1()
+                                    .label(i18n.t("database.views"))
+                                    .when(self.selected_tab == 1, |this| {
+                                        this.icon(AppIconName::IconView)
+                                    }),
+                            )
+                            .child(
+                                Tab::new()
+                                    .flex_1()
+                                    .label(i18n.t("database.queries"))
+                                    .when(self.selected_tab == 2, |this| {
+                                        this.icon(AppIconName::IconQuery)
+                                    }),
+                            ),
                     )
                 })
                 .when(!collapsed && self.selected_tab == 0, |this| {

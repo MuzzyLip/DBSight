@@ -11,6 +11,7 @@ pub struct TableColumn {
     pub default: Option<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct TableDataPage {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<String>>,
